@@ -12,6 +12,8 @@ class ApiBase:
         self.capacity = max_capacity
         self.count = collections.defaultdict(lambda: 0)
 
+        run_forever_nonblocking(self.__worker, self.log, 1)
+
     def _exec(self, func, *args, **kwargs):
         try:
             res = func(*args, **kwargs)
