@@ -1,4 +1,5 @@
-from .websocket import *
+from ..base.orderbook import *
+from .websocket import BitmexWebsocket
 
 
 class BitmexOrderbook(OrderbookBase):

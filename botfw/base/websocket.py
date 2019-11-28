@@ -1,46 +1,15 @@
 import time
 import logging
-import traceback
 import json
-
+import threading
+import traceback
 import secrets
 import hmac
 import hashlib
 
 import websocket
-from sortedcontainers import SortedDict
 
-from .etc.util import *
-
-
-def test_trade(t, trace=False, log_level=logging.DEBUG):
-    setup_logger(log_level)
-    if trace:
-        websocket.enableTrace(True)
-    try:
-        t.add_cb(lambda ts, p, s: print(f'{ts:.3f} {p:.1f} {s:+.3f}'))
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        pass
-
-
-def test_orderbook(ob, trace=False, log_level=logging.DEBUG):
-    setup_logger(log_level)
-    if trace:
-        websocket.enableTrace(True)
-    time.sleep(1)
-    try:
-        while True:
-            for p, s in ob.asks()[10::-1]:
-                print(f'{p:<10}{s:>10.3f}')
-            print('==== Order Book ====')
-            for p, s in ob.bids()[:10]:
-                print(f'{p:<10}{s:>10.3f}')
-            print('')
-            time.sleep(0.5)
-    except KeyboardInterrupt:
-        pass
+from ..etc.util import run_forever_nonblocking
 
 
 class WebsocketBase:
@@ -156,74 +125,3 @@ class WebsocketBase:
             on_message=self._on_message,
             on_error=self._on_error)
         self.ws.run_forever()
-
-
-class TradeBase:
-    def __init__(self):
-        self.ltp = None
-        self.cb = []
-
-    def add_cb(self, cb):
-        self.cb.append(cb)
-
-    def remove_Cb(self, cb):
-        self.cb.remove(cb)
-
-    def _trigger_cb(self, ts, price, size):
-        for cb in self.cb:
-            cb(ts, price, size)
-
-
-class OrderbookBase:
-    def __init__(self):
-        self.cb = []
-        self.init()
-
-    def init(self):
-        self.sd_bids = SortedDict()
-        self.sd_asks = SortedDict()
-
-    def bids(self):
-        return self.sd_bids.values()
-
-    def asks(self):
-        return self.sd_asks.values()
-
-    def add_cb(self, cb):
-        self.cb.append(cb)
-
-    def remove_Cb(self, cb):
-        self.cb.remove(cb)
-
-    def _trigger_cb(self):
-        for cb in self.cb:
-            cb()
-
-
-class PositionGroupBase(dict):
-    def __init__(self):
-        super().__init__()
-        self.__dict__ = self
-        self.position = 0
-        self.gain = 0
-        self.pnl = 0
-        self.unrealized_pnl = 0
-
-    def update(self, price, size):
-        pos, gain = size, price * -size
-        new_pos = self.position + pos
-
-        if self.position * size >= 0:
-            new_gain = self.gain + gain
-        else:
-            p, g = (pos, gain) if new_pos * \
-                pos > 0 else (self.position, self.gain)
-            new_gain = g * new_pos / p
-
-        self.pnl += self.gain + gain - new_gain
-        self.position = new_pos
-        self.gain = new_gain
-        self.update_unrealized_pnl(price)
-
-    def update_unrealized_pnl(self, price):
-        self.unrealized_pnl = self.gain + price * self.position

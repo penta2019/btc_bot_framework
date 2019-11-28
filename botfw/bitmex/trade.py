@@ -1,4 +1,6 @@
+from ..base.trade import *
 from .websocket import *
+from ..etc.util import unix_time_from_ISO8601Z
 
 
 class BitmexTrade(TradeBase):

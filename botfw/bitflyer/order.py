@@ -1,6 +1,10 @@
+import time
+import logging
 import collections
+import threading
 
-from .websocket import *
+from ..base.order import *
+from ..etc.util import run_forever_nonblocking, unix_time_from_ISO8601Z
 
 # Symbol
 FX_BTC_JPY = 'FX_BTC_JPY'
@@ -9,14 +13,6 @@ ETH_JPY = 'ETH_JPY'
 # ETH_BTC = 'ETH_BTC'
 # BCH_BTC = 'BCH_BTC'
 SYMBOLS = [FX_BTC_JPY, BTC_JPY, ETH_JPY]
-
-# Order Side
-BUY = 'BUY'
-SELL = 'SELL'
-
-# Order Type
-LIMIT = 'LIMIT'
-MARKET = 'MARKET'
 
 # Time in force
 GTC = 'GTC'
@@ -31,12 +27,13 @@ EVENT_CANCEL_FAILED = 'CANCEL_FAILED'
 EVENT_EXECUTION = 'EXECUTION'
 EVENT_EXPIRE = 'EXPIRE'
 
-# Order state (for BitflyerOrderManager)
-OPEN = 'OPEN'
-CLOSED = 'CLOSED'
-CANCELED = 'CANCELED'
-WAIT_OPEN = 'WAIT_OPEN'
-WAIT_CANCEL = 'WAIT_CANCEL'
+
+class BitflyerOrderInfo(OrderInfo):
+    def __init__(self, symbol, type_, side, amount, price=0,
+                 minute_to_expire=43200, time_in_force=GTC):
+        super().__init__(symbol, type_, side, amount, price)
+        self.minute_to_expire = minute_to_expire
+        self.time_in_force = time_in_force
 
 
 class BitflyerOrderEvent:
@@ -61,35 +58,6 @@ class BitflyerOrderEvent:
     # sfd              Number SFD徴収額 (EXECUTION)
 
 
-class BitflyerOrderInfo(dict):
-    def __init__(self, symbol, type_, side, size, price=0,
-                 minute_to_expire=43200, time_in_force=GTC):
-        super().__init__()
-        self.__dict__ = self
-
-        # Order Placement Info
-        self.symbol = symbol  # e.g. 'FX_BTC_JPY'
-        self.type = type_     # 'LIMIT' or 'MARKET'
-        self.side = side      # 'BUY' or 'SELL'
-        self.size = size      # order size in btc
-        self.price = price    # 0 if 'MARKET' order
-        self.minute_to_expire = minute_to_expire  # minute_to_expire
-        self.time_in_force = time_in_force        # time in force e.g. 'GTC'
-
-        # Order Management Info
-        self.id = None         # child_order_acceptance_id
-        self.external = False  # True if order is created outside OrderManager
-        self.open_ts = None    # open timestamp in server time
-        self.close_ts = None   # close timestamp in server time
-        self.state = None      # state managed by OrderManager
-        self.state_ts = None   # timestamp of last state change
-        self.filled = 0        # number of contracts
-        self.event_cb = None   # callback: cb(event)
-
-        # bitflyer specific
-        self.child_order_id = None
-
-
 class BitflyerOrderManager:
     def __init__(self, api, ws, external=True, retention=60):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -105,12 +73,18 @@ class BitflyerOrderManager:
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
-    def create_order(self, o):
+    def create_order(self, symbol, type_, side, amount, price=0,
+                     minute_to_expire=43200, time_in_force=GTC):
+        o = BitflyerOrderInfo(symbol, type_, side, amount, price,
+                              minute_to_expire, time_in_force)
+        self.create_order_from_orderinfo(o)
+
+    def create_order_from_orderinfo(self, o):
         try:
             self.__count_lock += 1
 
             res = self.api.create_order(
-                o.symbol, o.type, o.side, o.size, o.price,
+                o.symbol, o.type, o.side, o.amount, o.price,
                 o.minute_to_expire, o.time_in_force)
             o.id = res['id']
             o.state, o.state_ts = WAIT_OPEN, time.time()
@@ -152,7 +126,7 @@ class BitflyerOrderManager:
             o = self.__get_order(e)
             if not o:  # if order is not created by this class
                 if e.event_type == EVENT_ORDER:
-                    o = BitflyerOrderInfo(
+                    o = OrderInfo(
                         e.product_code, e.child_order_type,
                         e.side, e.size, e.price)
                     o.external = True
@@ -189,7 +163,7 @@ class BitflyerOrderManager:
         now = time.time()
         if t == EVENT_EXECUTION:
             o.filled = round(o.filled + e.size, 8)
-            if o.filled == o.size:
+            if o.filled == o.amount:
                 o.state, o.state_ts = CLOSED, now
                 o.close_ts = ts
                 self.__old_orders.append(o)
@@ -260,13 +234,13 @@ class BitflyerOrderGroup:
         self.position_group = BitflyerPositionGroup()
         self.orders = {}
 
-    def create_order(self, type_, side, size, price=0,
-                     minute_to_expire=43200, time_in_force='GTC'):
-        o = BitflyerOrderInfo(self.symbol, type_, side, size, price,
+    def create_order(self, type_, side, amount, price=0,
+                     minute_to_expire=43200, time_in_force=GTC):
+        o = BitflyerOrderInfo(self.symbol, type_, side, amount, price,
                               minute_to_expire, time_in_force)
         o.event_cb = self.position_group.handle_event
         o.group_name = self.name
-        o = self.manager.order_manager.create_order(o)
+        o = self.manager.order_manager.create_order_from_orderinfo(o)
         self.orders[o.id] = o
         return o
 

@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 import requests
 from bs4 import BeautifulSoup
 
-from .api import *
+from .api import BitflyerApi
 
 
 class BitflyerApiWithWebOrder(BitflyerApi):

@@ -1,6 +1,6 @@
+import json
 import sys
 import getpass
-import json
 
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256

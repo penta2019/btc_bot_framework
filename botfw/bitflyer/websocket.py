@@ -1,4 +1,4 @@
-from ..base import *
+from ..base.websocket import *
 
 
 class BitflyerWebsocket(WebsocketBase):

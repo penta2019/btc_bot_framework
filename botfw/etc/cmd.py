@@ -1,9 +1,9 @@
-import socket
 import logging
 import traceback
+import socket
 import inspect
 
-from .util import *
+from .util import run_forever_nonblocking
 
 
 class Cmd:

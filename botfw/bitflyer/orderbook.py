@@ -1,5 +1,5 @@
-from .websocket import *
-from ..etc.util import *
+from ..base.orderbook import *
+from .websocket import BitflyerWebsocket
 
 
 class BitflyerOrderbook(OrderbookBase):

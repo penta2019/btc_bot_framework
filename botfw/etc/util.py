@@ -1,6 +1,6 @@
+import time
 import datetime
 import logging
-import time
 import threading
 import traceback
 

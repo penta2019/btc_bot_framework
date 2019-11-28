@@ -1,19 +1,12 @@
-import collections
-import inspect
-
-from ..etc.util import *
+from ..base.api import *
 
 MAX_API_CAPACITY = 60
 
 
-class BitflyerApi:
+class BitflyerApi(ApiBase):
     def __init__(self, ccxt):
-        self.log = logging.getLogger(self.__class__.__name__)
+        super().__init__(MAX_API_CAPACITY)
         self.ccxt = ccxt
-        self.capacity = MAX_API_CAPACITY
-        self.count = collections.defaultdict(lambda: 0)
-
-        run_forever_nonblocking(self.__worker, self.log, 1)
 
     def fetch_boardstate(self, symbol):
         func = getattr(self.ccxt, 'public_get_getboardstate')
@@ -52,21 +45,3 @@ class BitflyerApi:
     def cancel_all_order(self, symbol):
         func = getattr(self.ccxt, 'private_post_cancelallchildorders')
         self._exec(func, {'product_code': symbol})
-
-    def _exec(self, func, *args, **kwargs):
-        try:
-            res = func(*args, **kwargs)
-        except Exception:
-            res = func(*args, **kwargs)  # retry once
-        finally:
-            func_name = inspect.stack()[1].function
-            if self.log.level <= logging.DEBUG:
-                self.log.debug(f'execute: {func_name} {args} {kwargs}')
-            self.count[func_name] += 1
-            self.capacity -= 1
-
-        return res
-
-    def __worker(self):
-        if self.capacity < MAX_API_CAPACITY:
-            self.capacity += 1
