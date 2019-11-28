@@ -83,7 +83,7 @@ while True:
         # def handle_old_order(o):
         #     if o.state == OPEN:
         #         fx_og.cancel_order(o)
-        #         log.info(f'CANCEL: {o.child_order_acceptance_id}')
+        #         log.info(f'CANCEL: {o.id}')
         #     if o.state == WAIT_CANCEL:
         #         time.sleep(1)
         #     if o.state in [CLOSED, CANCELED]:
@@ -100,12 +100,12 @@ while True:
         # if not buy_order and fx_pos <= 0:
         #     price = fx_best_bid[0] - 500
         #     buy_order = fx_og.create_order(LIMIT, BUY, 0.01, price)
-        #     id_ = buy_order.child_order_acceptance_id
+        #     id_ = buy_order.id
         #     log.info(f'ORDER : {id_} FX_BTC_JPY LIMIT BUY 0.01 {price}')
         # if not sell_order and fx_pos >= 0:
         #     price = fx_best_ask[0] + 500
         #     sell_order = fx_og.create_order(LIMIT, SELL, 0.01, price)
-        #     id_ = sell_order.child_order_acceptance_id
+        #     id_ = sell_order.id
         #     log.info(f'ORDER : {id_} FX_BTC_JPY LIMIT SELL 0.01 {price}')
 
     except KeyboardInterrupt:

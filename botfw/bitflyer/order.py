@@ -77,15 +77,17 @@ class BitflyerOrderInfo(dict):
         self.time_in_force = time_in_force        # time in force e.g. 'GTC'
 
         # Order Management Info
+        self.id = None         # child_order_acceptance_id
         self.external = False  # True if order is created outside OrderManager
         self.open_ts = None    # open timestamp in server time
         self.close_ts = None   # close timestamp in server time
-        self.child_order_acceptance_id = None
-        self.child_order_id = None
         self.state = None      # state managed by OrderManager
         self.state_ts = None   # timestamp of last state change
         self.filled = 0        # number of contracts
         self.event_cb = None   # callback: cb(event)
+
+        # bitflyer specific
+        self.child_order_id = None
 
 
 class BitflyerOrderManager:
@@ -96,7 +98,7 @@ class BitflyerOrderManager:
         self.ws.add_after_auth_cb(self.__after_auth)
         self.external = external  # True to allow external orders
         self.retention = retention  # retantion time of closed(canceled) order
-        self.orders = {}  # {child_order_acceptance_id: BitflyerOrderInfo}
+        self.orders = {}  # {id: BitflyerOrderInfo}
         self.__count_lock = 0
         self.__event_queue = collections.deque()
         self.__old_orders = collections.deque()
@@ -110,17 +112,16 @@ class BitflyerOrderManager:
             res = self.api.create_order(
                 o.symbol, o.type, o.side, o.size, o.price,
                 o.minute_to_expire, o.time_in_force)
-            oaid = res['id']
-            o.child_order_acceptance_id = oaid
+            o.id = res['id']
             o.state, o.state_ts = WAIT_OPEN, time.time()
-            self.orders[oaid] = o
+            self.orders[o.id] = o
         finally:
             self.__count_lock -= 1
 
         return o
 
     def cancel_order(self, o):
-        self.api.cancel_order(o.child_order_acceptance_id, o.symbol)
+        self.api.cancel_order(o.id, o.symbol)
         o.state = WAIT_CANCEL
         o.state_ts = time.time()
 
@@ -167,7 +168,7 @@ class BitflyerOrderManager:
             o = self.__old_orders[0]
             if time.time() - o.state_ts > self.retention:
                 self.__old_orders.popleft()
-                self.orders.pop(o.child_order_acceptance_id, None)
+                self.orders.pop(o.id, None)
             else:
                 break
 
@@ -175,7 +176,7 @@ class BitflyerOrderManager:
         for o in self.orders.values():
             if o.external and o.state == OPEN:
                 self.log.warn(
-                    f'cancel external order: {o.child_order_acceptance_id}')
+                    f'cancel external order: {o.id}')
                 self.cancel_order(o)
 
     def __get_order(self, e):
@@ -183,7 +184,7 @@ class BitflyerOrderManager:
 
     def __update_order(self, o, e):
         t = e.event_type
-        oaid = e.child_order_acceptance_id
+        id_ = e.child_order_acceptance_id
         ts = unix_time_from_ISO8601Z(e.event_date)
         now = time.time()
         if t == EVENT_EXECUTION:
@@ -197,13 +198,13 @@ class BitflyerOrderManager:
                 self.log.warn('something wrong with order state handling')
         elif t == EVENT_ORDER:
             o.open_ts = ts
-            o.child_order_acceptance_id = e.child_order_acceptance_id
+            o.id = id_
             o.child_order_id = e.child_order_id
             if o.state == WAIT_OPEN:
                 o.state, o.state_ts = OPEN, now
         elif t == EVENT_ORDER_FAILED:
             o.state, o.state_ts = CANCELED, now
-            self.log.warn(f'order failed: {oaid} {e.reason}')
+            self.log.warn(f'order failed: {id_} {e.reason}')
         elif t == EVENT_CANCEL:
             o.state, o.state_ts = CANCELED, now
             o.close_ts = ts
@@ -211,13 +212,13 @@ class BitflyerOrderManager:
         elif t == EVENT_CANCEL_FAILED:
             if o.state == WAIT_CANCEL:
                 o.state, o.state_ts = OPEN, now
-            self.log.warn(f'cancel failed: {oaid}')
+            self.log.warn(f'cancel failed: {id_}')
         elif t == EVENT_EXPIRE:
             o.state, o.state_ts = CANCELED, now
             self.__old_orders.append(o)
-            self.log.warn(f'order expired: {oaid})')
+            self.log.warn(f'order expired: {id_})')
         else:
-            self.log.error(f'unknown event_type: {t}\n {oaid}')
+            self.log.error(f'unknown event_type: {t}\n {id_}')
 
         if o.event_cb:
             o.event_cb(e)
@@ -266,7 +267,7 @@ class BitflyerOrderGroup:
         o.event_cb = self.position_group.handle_event
         o.group_name = self.name
         o = self.manager.order_manager.create_order(o)
-        self.orders[o.child_order_acceptance_id] = o
+        self.orders[o.id] = o
         return o
 
     def cancel_order(self, o):
@@ -274,10 +275,10 @@ class BitflyerOrderGroup:
 
     def remove_closed_orders(self, retention=0):
         now = time.time()
-        for oaid, o in self.orders.items():
+        for id_, o in self.orders.items():
             if o.state in [CLOSED, CANCELED]:
                 if o.state_ts - now > retention:
-                    del self.orders[oaid]
+                    del self.orders[id_]
 
 
 class BitflyerOrderGroupManager:
