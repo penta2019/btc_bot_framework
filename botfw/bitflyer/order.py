@@ -1,0 +1,387 @@
+import collections
+
+from .websocket import *
+
+# Symbol
+FX_BTC_JPY = 'FX_BTC_JPY'
+BTC_JPY = 'BTC_JPY'
+ETH_JPY = 'ETH_JPY'
+# ETH_BTC = 'ETH_BTC'
+# BCH_BTC = 'BCH_BTC'
+SYMBOLS = [FX_BTC_JPY, BTC_JPY, ETH_JPY]
+
+# Order Side
+BUY = 'BUY'
+SELL = 'SELL'
+
+# Order Type
+LIMIT = 'LIMIT'
+MARKET = 'MARKET'
+
+# Time in force
+GTC = 'GTC'
+FOK = 'FOK'
+IOC = 'IOC'
+
+# Event Type
+EVENT_ORDER = 'ORDER'
+EVENT_ORDER_FAILED = 'ORDER_FAILED'
+EVENT_CANCEL = 'CANCEL'
+EVENT_CANCEL_FAILED = 'CANCEL_FAILED'
+EVENT_EXECUTION = 'EXECUTION'
+EVENT_EXPIRE = 'EXPIRE'
+
+# Order state (for BitflyerOrderManager)
+OPEN = 'OPEN'
+CLOSED = 'CLOSED'
+CANCELED = 'CANCELED'
+WAIT_OPEN = 'WAIT_OPEN'
+WAIT_CANCEL = 'WAIT_CANCEL'
+
+
+class BitflyerOrderEvent:
+    pass
+    # https://bf-lightning-api.readme.io/docs/realtime-child-order-events
+    # [Property]       [Type] [Description]
+    # product_code     String BTC_JPY,FX_BTC_JPY など
+    # child_order_id   String 注文ID
+    # child_order_acc~ String 注文の受付ID
+    # event_date       String イベントの発生時間
+    # event_type       String イベントの種類:
+    #                         ORDER, ORDER_FAILED, CANCEL,
+    #                         CANCEL_FAILED, EXECUTION, EXPIRE
+    # child_order_type String 注文の種類 (ORDER)
+    # expire_date      String 注文の期限 (ORDER, EXECUTION)
+    # reason           String 注文が拒否された理由 (ORDER_FAILED)
+    # exec_id          Number 約定ID (EXECUTION)
+    # side             String 売買種別: SELL, BUY (ORDER, EXECUTION)
+    # price            Number 価格 (ORDER, EXECUTION)
+    # size             Number 数量 (ORDER, EXECUTION)
+    # commission       Number 手数料 (EXECUTION)
+    # sfd              Number SFD徴収額 (EXECUTION)
+
+
+class BitflyerOrderInfo(dict):
+    def __init__(self, symbol, type_, side, size, price=0,
+                 minute_to_expire=43200, time_in_force=GTC):
+        super().__init__()
+        self.__dict__ = self
+
+        # Order Placement Info
+        self.symbol = symbol  # e.g. 'FX_BTC_JPY'
+        self.type = type_     # 'LIMIT' or 'MARKET'
+        self.side = side      # 'BUY' or 'SELL'
+        self.size = size      # order size in btc
+        self.price = price    # 0 if 'MARKET' order
+        self.minute_to_expire = minute_to_expire  # minute_to_expire
+        self.time_in_force = time_in_force        # time in force e.g. 'GTC'
+
+        # Order Management Info
+        self.external = False  # True if order is created outside OrderManager
+        self.open_ts = None    # open timestamp in server time
+        self.close_ts = None   # close timestamp in server time
+        self.child_order_acceptance_id = None
+        self.child_order_id = None
+        self.state = None      # state managed by OrderManager
+        self.state_ts = None   # timestamp of last state change
+        self.filled = 0        # number of contracts
+        self.event_cb = None   # callback: cb(event)
+
+
+class BitflyerOrderManager:
+    def __init__(self, api, ws, external=True, retention=60):
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.api = api  # BitflyerApi
+        self.ws = ws  # BitflyerWs (with auth)
+        self.ws.add_after_auth_cb(self.__after_auth)
+        self.external = external  # True to allow external orders
+        self.retention = retention  # retantion time of closed(canceled) order
+        self.orders = {}  # {child_order_acceptance_id: BitflyerOrderInfo}
+        self.__count_lock = 0
+        self.__event_queue = collections.deque()
+        self.__old_orders = collections.deque()
+
+        run_forever_nonblocking(self.__worker, self.log, 1)
+
+    def create_order(self, o):
+        try:
+            self.__count_lock += 1
+
+            res = self.api.create_order(
+                o.symbol, o.type, o.side, o.size, o.price,
+                o.minute_to_expire, o.time_in_force)
+            oaid = res['id']
+            o.child_order_acceptance_id = oaid
+            o.state, o.state_ts = WAIT_OPEN, time.time()
+            self.orders[oaid] = o
+        finally:
+            self.__count_lock -= 1
+
+        return o
+
+    def cancel_order(self, o):
+        self.api.cancel_order(o.child_order_acceptance_id, o.symbol)
+        o.state = WAIT_CANCEL
+        o.state_ts = time.time()
+
+    def __after_auth(self):
+        self.orders = {}
+        self.__event_queue = collections.deque()
+        self.__old_orders = collections.deque()
+        self.ws.subscribe('child_order_events', self.__on_events)
+
+    def __on_events(self, msg):
+        for event in msg['params']['message']:
+            e = BitflyerOrderEvent()
+            e.__dict__ = event
+            o = self.__get_order(e)
+            if o:
+                self.__update_order(o, e)
+            else:
+                # if event comes before create_order returns
+                # or order is not created by this class
+                self.__event_queue.append(e)
+
+    def __handle_events(self):
+        if self.__count_lock:
+            return
+
+        while self.__event_queue:
+            e = self.__event_queue.popleft()
+            o = self.__get_order(e)
+            if not o:  # if order is not created by this class
+                if e.event_type == EVENT_ORDER:
+                    o = BitflyerOrderInfo(
+                        e.product_code, e.child_order_type,
+                        e.side, e.size, e.price)
+                    o.external = True
+                    o.state, o.state_ts = WAIT_OPEN, time.time()
+                    self.orders[e.child_order_acceptance_id] = o
+                else:
+                    self.log.warn(f'event for unknown order: {e.__dict__}')
+                    continue
+            self.__update_order(o, e)
+
+    def __remove_old_order(self):
+        while self.__old_orders:
+            o = self.__old_orders[0]
+            if time.time() - o.state_ts > self.retention:
+                self.__old_orders.popleft()
+                self.orders.pop(o.child_order_acceptance_id, None)
+            else:
+                break
+
+    def __cancel_external_orders(self):
+        for o in self.orders.values():
+            if o.external and o.state == OPEN:
+                self.log.warn(
+                    f'cancel external order: {o.child_order_acceptance_id}')
+                self.cancel_order(o)
+
+    def __get_order(self, e):
+        return self.orders.get(e.child_order_acceptance_id)
+
+    def __update_order(self, o, e):
+        t = e.event_type
+        oaid = e.child_order_acceptance_id
+        ts = unix_time_from_ISO8601Z(e.event_date)
+        now = time.time()
+        if t == EVENT_EXECUTION:
+            o.filled = round(o.filled + e.size, 8)
+            if o.filled == o.size:
+                o.state, o.state_ts = CLOSED, now
+                o.close_ts = ts
+                self.__old_orders.append(o)
+            elif o.state != OPEN:
+                o.state, o.state_ts = OPEN, now
+                self.log.warn('something wrong with order state handling')
+        elif t == EVENT_ORDER:
+            o.open_ts = ts
+            o.child_order_acceptance_id = e.child_order_acceptance_id
+            o.child_order_id = e.child_order_id
+            if o.state == WAIT_OPEN:
+                o.state, o.state_ts = OPEN, now
+        elif t == EVENT_ORDER_FAILED:
+            o.state, o.state_ts = CANCELED, now
+            self.log.warn(f'order failed: {oaid} {e.reason}')
+        elif t == EVENT_CANCEL:
+            o.state, o.state_ts = CANCELED, now
+            o.close_ts = ts
+            self.__old_orders.append(o)
+        elif t == EVENT_CANCEL_FAILED:
+            if o.state == WAIT_CANCEL:
+                o.state, o.state_ts = OPEN, now
+            self.log.warn(f'cancel failed: {oaid}')
+        elif t == EVENT_EXPIRE:
+            o.state, o.state_ts = CANCELED, now
+            self.__old_orders.append(o)
+            self.log.warn(f'order expired: {oaid})')
+        else:
+            self.log.error(f'unknown event_type: {t}\n {oaid}')
+
+        if o.event_cb:
+            o.event_cb(e)
+
+    def __worker(self):
+        self.__handle_events()
+        self.__remove_old_order()
+        if not self.external:
+            self.__cancel_external_orders()
+
+
+class BitflyerPositionGroup(PositionGroupBase):
+    def __init__(self):
+        super().__init__()
+        self.sfd = 0  # total sfd
+        self.commission = 0  # total commissions in jpy
+
+    def handle_event(self, e):
+        if e.event_type != EVENT_EXECUTION:
+            return
+
+        p = e.price
+        s = e.size * (1 if e.side == BUY else -1)
+        c = e.commission
+        sfd = e.sfd
+
+        self.update(p, s)
+        self.position = round(self.position - c, 8)
+        self.sfd += sfd
+        self.commission += p * c
+        self.pnl += -p * c + sfd
+
+
+class BitflyerOrderGroup:
+    def __init__(self, manager, name, symbol):
+        self.name = name
+        self.symbol = symbol
+        self.manager = manager
+        self.position_group = BitflyerPositionGroup()
+        self.orders = {}
+
+    def create_order(self, type_, side, size, price=0,
+                     minute_to_expire=43200, time_in_force='GTC'):
+        o = BitflyerOrderInfo(self.symbol, type_, side, size, price,
+                              minute_to_expire, time_in_force)
+        o.event_cb = self.position_group.handle_event
+        o.group_name = self.name
+        o = self.manager.order_manager.create_order(o)
+        self.orders[o.child_order_acceptance_id] = o
+        return o
+
+    def cancel_order(self, o):
+        self.manager.order_manager.cancel_order(o)
+
+    def remove_closed_orders(self, retention=0):
+        now = time.time()
+        for oaid, o in self.orders.items():
+            if o.state in [CLOSED, CANCELED]:
+                if o.state_ts - now > retention:
+                    del self.orders[oaid]
+
+
+class BitflyerOrderGroupManager:
+    def __init__(self, order_manager, trades={},
+                 position_sync_symbols=[], retention=60):
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.order_manager = order_manager
+        self.order_groups = {}
+        self.position_sync_symbols = position_sync_symbols  # TODO
+        self.trades = trades  # {symbol:Trade}, used to update unrealized pnl
+        self.retention = retention
+
+        run_forever_nonblocking(self.__worker, self.log, 1)
+
+    def create_order_group(self, name, symbol):
+        if name in self.order_groups:
+            self.log.error('Failed to create order group. '
+                           f'Order group "{name}" already exists.')
+            return None
+
+        og = BitflyerOrderGroup(self, name, symbol)
+        self.order_groups[name] = og
+        return og
+
+    def destroy_order_group(self, og, clean=True):
+        name = og.name
+        if name not in self.order_groups:
+            self.log.error('Failed to destroy order group. '
+                           f'Unknown order group "{name}". ')
+
+        og = self.order_groups.pop(name)
+        og.clean = clean  # whether to clean OrderGroup position
+
+        thread = threading.Thread(
+            name=f'clean_{og.name}', target=self.__worker_destroy_order_group,
+            args=[og])
+        thread.daemon = True
+        thread.start()
+
+    def get_total_positions(self):
+        positions = {}
+        for s in SYMBOLS:
+            positions[s] = BitflyerPositionGroup()
+
+        for og in self.order_groups.values():
+            p0, p = positions[og.symbol], og.position
+            for k in p:
+                p0[k] += p[k]
+
+        return positions
+
+    def __worker(self):
+        # remove closed orders older than retention time
+        if self.retention is not None:
+            for og in self.order_groups.values():
+                og.remove_closed_orders(self.retention)
+
+        # update unrealized pnl if possible
+        for og in self.order_groups.values():
+            t = self.trades.get(og.symbol)
+            if t and t.ltp:
+                og.position_group.update_unrealized_pnl(t.ltp)
+
+    def __worker_destroy_order_group(self, og):
+        while True:
+            # cancel remaining orders except for position cleaning orders
+            is_remain = False
+            for o in og.orders.values():
+                if o.state in [OPEN, WAIT_OPEN]:
+                    og.cancel_order(o)
+                    is_remain = True
+
+            if is_remain:
+                time.sleep(3)
+                continue
+
+            # clean position if needed
+            pos = og.position.pos
+            if abs(pos) < 0.01:
+                og.create_order(MARKET, BUY, 0.02)
+                pos = round(pos + 0.02, 8)
+
+            lot = 0.5
+            while abs(pos) >= 0.01:
+                if lot < pos:
+                    size = -lot
+                elif 0 < pos < lot:
+                    size = -pos
+                elif -lot < pos < 0:
+                    size = pos
+                else:  # pos <= lot
+                    size = lot
+                pos = round(pos + size, 8)
+
+                if size > 0:
+                    side, size = BUY, size
+                else:
+                    side, size = SELL, -size
+                self.log.info(
+                    f'{og.symbol} {side} {MARKET} {size} ({og.name} clean)')
+                og.create_order(MARKET, side, size)
+                time.sleep(1)
+
+            if not og.clean or og.position.pos == 0:
+                self.log.info(
+                    f'Destroyed order group "{og.name}" successfully.')
+                break
