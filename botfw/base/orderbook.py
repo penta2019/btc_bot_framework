@@ -43,7 +43,7 @@ class OrderbookBase:
     def add_cb(self, cb):
         self.cb.append(cb)
 
-    def remove_Cb(self, cb):
+    def remove_cb(self, cb):
         self.cb.remove(cb)
 
     def _trigger_cb(self):
