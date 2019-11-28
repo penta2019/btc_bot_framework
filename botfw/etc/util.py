@@ -24,10 +24,10 @@ def setup_logger(level=logging.INFO):
     log.addHandler(handler)
 
 
-def run_forever(callback, log, sleep, exception_sleep=5):
+def run_forever(cb, log, sleep, exception_sleep=5):
     while True:
         try:
-            callback()
+            cb()
         except StopRunForever:
             break
         except Exception as e:
@@ -37,10 +37,10 @@ def run_forever(callback, log, sleep, exception_sleep=5):
         time.sleep(sleep)
 
 
-def run_forever_nonblocking(callback, log, sleep, exception_sleep=5):
+def run_forever_nonblocking(cb, log, sleep, exception_sleep=5):
     thread = threading.Thread(
         name=log.name, target=run_forever,
-        args=(callback, log, sleep, exception_sleep))
+        args=(cb, log, sleep, exception_sleep))
     thread.daemon = True
     thread.start()
 
