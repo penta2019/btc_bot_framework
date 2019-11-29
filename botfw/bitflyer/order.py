@@ -78,7 +78,7 @@ class BitflyerOrderManager:
         self.log = logging.getLogger(self.__class__.__name__)
         self.api = api  # BitflyerApi
         self.ws = ws  # BitflyerWs (with auth)
-        self.ws.add_after_auth_cb(self.__after_auth)
+        self.ws.add_after_auth_callback(self.__after_auth)
         self.external = external  # True to allow external orders
         self.retention = retention  # retantion time of closed(canceled) order
         self.orders = {}  # {id: BitflyerOrderInfo}

@@ -1,19 +1,3 @@
-# Order Side
-BUY = 'buy'
-SELL = 'sell'
-
-# Order Type
-LIMIT = 'limit'
-MARKET = 'market'
-
-# Order state
-OPEN = 'open'
-CLOSED = 'closed'
-CANCELED = 'canceled'
-WAIT_OPEN = 'wait_open'
-WAIT_CANCEL = 'wait_cancel'
-
-
 class OrderInfo(dict):
     def __init__(self, symbol, type_, side, amount, price=0):
         super().__init__()
@@ -27,16 +11,16 @@ class OrderInfo(dict):
         self.price = price
 
         # Order Management Info
-        self.id = None         # exchange specific id
-        self.filled = 0        # number of contracts
-        self.state = None      # state managed by OrderManager
-        self.state_ts = None   # timestamp of last state change
-        self.trade_ts = None   # timestamp of last contract
-        self.open_ts = None    # open timestamp
-        self.close_ts = None   # close timestamp
-        self.external = False  # True if order is created outside OrderManager
-        self.event_cb = None   # callback: cb(event)
-        self.group_name = None
+        self.id = None          # exchange specific id
+        self.filled = 0         # number of contracts
+        self.state = None       # state managed by OrderManager
+        self.state_ts = None    # timestamp of last state change
+        self.trade_ts = None    # timestamp of last contract
+        self.open_ts = None     # open timestamp
+        self.close_ts = None    # close timestamp
+        self.external = False   # True if order is created outside OrderManager
+        self.event_cb = None    # callback: cb(event)
+        self.group_name = None  # OrderGroup name
 
 
 class PositionGroupBase(dict):

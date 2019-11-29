@@ -8,7 +8,7 @@ class BitflyerTrade(TradeBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or BitflyerWebsocket()
-        self.ws.add_after_open_cb(self.__after_open)
+        self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
         ch = f'lightning_executions_{self.symbol}'
@@ -23,4 +23,4 @@ class BitflyerTrade(TradeBase):
             if side == 'SELL':
                 size *= -1
             self.ltp = price
-            self._trigger_cb(ts, price, size)
+            self._trigger_callback(ts, price, size)

@@ -49,7 +49,7 @@ class BitflyerWebsocket(WebsocketBase):
             ch = None
             if msg.get('method') == 'channelMessage':
                 ch = msg['params']['channel']
-                self._handle_ch_message(ch, msg)
+                self._handle_channel_message(ch, msg)
             else:
                 self.log.debug(f'recv: {msg}')
                 id_ = msg.get('id')

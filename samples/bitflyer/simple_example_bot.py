@@ -33,13 +33,13 @@ fx_og = ogm.create_order_group('fx', FX_BTC_JPY)
 # btc_og = ogm.create_order_group('btc', BTC_JPY)
 
 
-def fx_cb(ts, price, size):
+def fx_callback(ts, price, size):
     global fx_delay
     fx_delay = time.time() - ts
 
 
 fx_delay = 0
-fx_trade.add_cb(fx_cb)
+fx_trade.add_callback(fx_callback)
 while not fx_trade.ltp:
     print(f'initializing ltp...')
     time.sleep(1)

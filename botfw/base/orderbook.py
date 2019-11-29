@@ -40,12 +40,12 @@ class OrderbookBase:
     def asks(self):
         return self.sd_asks.values()
 
-    def add_cb(self, cb):
+    def add_callback(self, cb):
         self.cb.append(cb)
 
-    def remove_cb(self, cb):
+    def remove_callback(self, cb):
         self.cb.remove(cb)
 
-    def _trigger_cb(self):
+    def _trigger_callback(self):
         for cb in self.cb:
             cb()

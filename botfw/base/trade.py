@@ -11,7 +11,7 @@ def test_trade(t, trace=False, log_level=logging.DEBUG):
     if trace:
         websocket.enableTrace(True)
     try:
-        t.add_cb(lambda ts, p, s: print(f'{ts:.3f} {p:.1f} {s:+.3f}'))
+        t.add_callback(lambda ts, p, s: print(f'{ts:.3f} {p:.1f} {s:+.3f}'))
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
@@ -23,12 +23,12 @@ class TradeBase:
         self.ltp = None
         self.cb = []
 
-    def add_cb(self, cb):
+    def add_callback(self, cb):
         self.cb.append(cb)
 
-    def remove_Cb(self, cb):
+    def remove_callback(self, cb):
         self.cb.remove(cb)
 
-    def _trigger_cb(self, ts, price, size):
+    def _trigger_callback(self, ts, price, size):
         for cb in self.cb:
             cb(ts, price, size)

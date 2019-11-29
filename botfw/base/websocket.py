@@ -24,12 +24,12 @@ class WebsocketBase:
 
         run_forever_nonblocking(self.__worker, self.log, 3)
 
-    def add_after_open_cb(self, cb):
+    def add_after_open_callback(self, cb):
         self.__after_open_cb.append(cb)
         if self.is_open:
             cb()  # call immediately if already opened
 
-    def add_after_auth_cb(self, cb):
+    def add_after_auth_callback(self, cb):
         self.__after_auth_cb.append(cb)
         if self.is_auth:
             cb()  # call immediately if already authenticated
@@ -108,7 +108,7 @@ class WebsocketBase:
         assert False
         return 0
 
-    def _handle_ch_message(self, ch, msg):
+    def _handle_channel_message(self, ch, msg):
         try:
             self.__ch_cb_map[ch](msg)
         except Exception:

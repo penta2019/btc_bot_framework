@@ -7,7 +7,7 @@ class BitmexOrderbook(OrderbookBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or BitmexWebsocket()
-        self.ws.add_after_open_cb(self.__after_open)
+        self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
         self.init()
@@ -31,7 +31,7 @@ class BitmexOrderbook(OrderbookBase):
                 sd, key = self.__sd_and_key(d)
                 sd.pop(key, None)
 
-        self._trigger_cb()
+        self._trigger_callback()
 
     def __sd_and_key(self, data):
         if data['side'] == 'Buy':

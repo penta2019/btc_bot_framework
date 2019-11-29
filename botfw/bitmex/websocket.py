@@ -1,5 +1,6 @@
 import time
 import json
+import traceback
 import hmac
 import hashlib
 
@@ -38,7 +39,7 @@ class BitmexWebsocket(WebsocketBase):
             msg = json.loads(msg)
             table = msg.get('table')
             if table:
-                self._handle_ch_message(table, msg)
+                self._handle_channel_message(table, msg)
             else:
                 self.log.debug(f'revc: {msg}')
                 req = msg.get('request')

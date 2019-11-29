@@ -8,7 +8,7 @@ class BitmexTrade(TradeBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or BitmexWebsocket()
-        self.ws.add_after_open_cb(self.__after_open)
+        self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
         ch = f'trade:{self.symbol}'
@@ -24,4 +24,4 @@ class BitmexTrade(TradeBase):
                     size *= -1
                 self.ltp = price
 
-                self._trigger_cb(ts, price, size)
+                self._trigger_callback(ts, price, size)

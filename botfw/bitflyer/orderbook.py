@@ -11,7 +11,7 @@ class BitflyerOrderbook(OrderbookBase):
         self.ch_snapshot = f'lightning_board_snapshot_{self.symbol}'
         self.ch_update = f'lightning_board_{self.symbol}'
         self.ws = ws or BitflyerWebsocket()
-        self.ws.add_after_open_cb(self.__after_open)
+        self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
         self.init()
@@ -31,7 +31,7 @@ class BitflyerOrderbook(OrderbookBase):
             self.__update(self.sd_bids, m['bids'], -1)
             self.__update(self.sd_asks, m['asks'], 1)
 
-        self._trigger_cb()
+        self._trigger_callback()
 
     def __update(self, sd, d, sign):
         for i in d:
