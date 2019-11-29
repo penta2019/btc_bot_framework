@@ -19,7 +19,7 @@ class BitflyerApiWithWebOrder(BitflyerApi):
                      minute_to_expire=43200, time_in_force='GTC'):
         self.api.set_timeout(20)
         res = self._exec(self.api.send_order,
-                         symbol, type_, side, size, price,
+                         symbol, type_.upper(), side.upper(), size, price,
                          minute_to_expire, time_in_force)
         # {'status': 0,
         #  'error_message': None,
@@ -34,7 +34,7 @@ class BitflyerApiWithWebOrder(BitflyerApi):
         if st != 0:
             if res['status'] == -501:
                 self.api.login()
-            raise Exception(f'send_order: {st},{err}')
+            raise Exception(f'create_order: {st}, {err}')
 
         return {'id': res['data']['order_ref_id']}
 
