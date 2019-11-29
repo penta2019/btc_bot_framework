@@ -7,7 +7,7 @@ import pprint
 import ccxt
 
 from botfw.bitflyer import *
-
+from botfw.etc.util import setup_logger
 
 account = json.loads(open('account_info.json').read())
 KEY = account['key']  # YOUR_API_KEY
@@ -53,7 +53,7 @@ while True:
         try:
             fx_best_bid = fx_orderbook.bids()[0]
             fx_best_ask = fx_orderbook.asks()[0]
-        except:
+        except BaseException:
             print('initializing orderbook...')
             continue
 
@@ -113,5 +113,5 @@ while True:
 
     except KeyboardInterrupt:
         break
-    except:
+    except BaseException:
         log.error(traceback.format_exc())

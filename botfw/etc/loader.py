@@ -1,7 +1,6 @@
 import importlib
 import logging
 import sys
-import threading
 import traceback
 
 from .util import run_forever_nonblocking, StopRunForever
@@ -73,7 +72,7 @@ class DynamicClassLoader:
         try:
             instance.join(5)
             instance.on_stop()
-        except:
+        except Exception:
             class_.log.error(traceback.format_exc())
         del sys.modules[class_['module_name']]
         del self.classes[class_name]

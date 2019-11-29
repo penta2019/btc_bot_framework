@@ -1,4 +1,4 @@
-from ..base.api import *
+from ..base.api import ApiBase
 
 MAX_API_CAPACITY = 60
 

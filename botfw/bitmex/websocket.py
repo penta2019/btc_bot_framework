@@ -1,4 +1,9 @@
-from ..base.websocket import *
+import time
+import json
+import hmac
+import hashlib
+
+from ..base.websocket import WebsocketBase
 
 
 class BitmexWebsocket(WebsocketBase):

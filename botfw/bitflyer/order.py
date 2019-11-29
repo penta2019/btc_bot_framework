@@ -3,8 +3,23 @@ import logging
 import collections
 import threading
 
-from ..base.order import *
+from ..base.order import OrderInfo, PositionGroupBase
 from ..etc.util import run_forever_nonblocking, unix_time_from_ISO8601Z
+
+# Order Side
+BUY = 'buy'
+SELL = 'sell'
+
+# Order Type
+LIMIT = 'limit'
+MARKET = 'market'
+
+# Order state
+OPEN = 'open'
+CLOSED = 'closed'
+CANCELED = 'canceled'
+WAIT_OPEN = 'wait_open'
+WAIT_CANCEL = 'wait_cancel'
 
 # Symbol
 FX_BTC_JPY = 'FX_BTC_JPY'
@@ -126,7 +141,7 @@ class BitflyerOrderManager:
             o = self.__get_order(e)
             if not o:  # if order is not created by this class
                 if e.event_type == EVENT_ORDER:
-                    o = OrderInfo(
+                    o = BitflyerOrderInfo(
                         e.product_code, e.child_order_type,
                         e.side, e.size, e.price)
                     o.external = True

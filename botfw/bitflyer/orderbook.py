@@ -1,4 +1,6 @@
-from ..base.orderbook import *
+from sortedcontainers import SortedDict
+
+from ..base.orderbook import OrderbookBase
 from .websocket import BitflyerWebsocket
 
 
@@ -35,6 +37,6 @@ class BitflyerOrderbook(OrderbookBase):
         for i in d:
             p, s = int(i['price']), i['size']
             if s == 0:
-                sd.pop(p*sign, None)
+                sd.pop(p * sign, None)
             else:
-                sd[p*sign] = [p, s]
+                sd[p * sign] = [p, s]

@@ -1,5 +1,5 @@
-from ..base.trade import *
-from .websocket import *
+from ..base.trade import TradeBase
+from .websocket import BitmexWebsocket
 from ..etc.util import unix_time_from_ISO8601Z
 
 

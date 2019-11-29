@@ -1,4 +1,11 @@
-from ..base.websocket import *
+import time
+import json
+import secrets
+import hmac
+import hashlib
+import traceback
+
+from ..base.websocket import WebsocketBase
 
 
 class BitflyerWebsocket(WebsocketBase):
@@ -23,7 +30,7 @@ class BitflyerWebsocket(WebsocketBase):
     def _authenticate(self):
         now = int(time.time())
         nonce = secrets.token_hex(16)
-        sign = hmac.new(self.__secret.encode(), (str(now)+nonce).encode(),
+        sign = hmac.new(self.__secret.encode(), (str(now) + nonce).encode(),
                         hashlib.sha256).hexdigest()
         id_ = self.command('auth', {
             'api_key': self.__key,
@@ -62,5 +69,5 @@ class BitflyerWebsocket(WebsocketBase):
                         if id_ == self.__auth_id:
                             self.is_auth = False
 
-        except:
+        except Exception:
             self.log.debug(traceback.format_exc())

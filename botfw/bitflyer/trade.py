@@ -1,4 +1,4 @@
-from ..base.trade import *
+from ..base.trade import TradeBase
 from .websocket import BitflyerWebsocket
 from ..etc.util import unix_time_from_ISO8601Z
 

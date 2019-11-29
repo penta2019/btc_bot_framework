@@ -3,9 +3,6 @@ import logging
 import json
 import threading
 import traceback
-import secrets
-import hmac
-import hashlib
 
 import websocket
 
@@ -84,12 +81,12 @@ class WebsocketBase:
                     self.wait_auth()
                     for cb in self.__after_auth_cb:
                         cb()
-                except:
+                except Exception:
                     self.log.error(traceback.format_exc())
 
             if self.is_auth_enabled:
                 threading.Thread(target=worker).start()
-        except:
+        except Exception:
             self.log.error(traceback.format_exc())
 
     def _on_close(self):
@@ -114,7 +111,7 @@ class WebsocketBase:
     def _handle_ch_message(self, ch, msg):
         try:
             self.__ch_cb_map[ch](msg)
-        except:
+        except Exception:
             self.log.error(traceback.format_exc())
 
     def __worker(self):

@@ -1,4 +1,4 @@
-from ..base.orderbook import *
+from ..base.orderbook import OrderbookBase
 from .websocket import BitmexWebsocket
 
 
@@ -20,7 +20,7 @@ class BitmexOrderbook(OrderbookBase):
             for d in data:
                 sd, key = self.__sd_and_key(d)
                 price, size = d['price'], d['size']
-                sd[key] = [price, size/price]
+                sd[key] = [price, size / price]
         elif action == 'update':
             for d in data:
                 sd, key = self.__sd_and_key(d)
