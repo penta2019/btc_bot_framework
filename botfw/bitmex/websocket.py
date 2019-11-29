@@ -39,10 +39,18 @@ class BitmexWebsocket(WebsocketBase):
                 req = msg.get('request')
                 if req:
                     id_ = json.dumps(req)
-                    req, res = self.__request_tabl[id_], msg['success']
-                    self.log.info(f'{req} => {res}')
+                    req = self.__request_tabl[id_]
+                    if 'success' in msg:
+                        res = msg['success']
+                        self.log.info(f'{req} => {res}')
 
-                    if id_ == self.__auth_id:
-                        self.is_auth = res
+                        if id_ == self.__auth_id:
+                            self.is_auth = True
+                    elif 'error' in msg:
+                        status, error = msg['status'], msg['error']
+                        self.log.error(f'{req} => {status}, {error}')
+
+                        if id_ == self.__auth_id:
+                            self.is_auth = False
         except Exception:
             self.log.debug(traceback.format_exc())

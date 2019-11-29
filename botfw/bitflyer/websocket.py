@@ -57,7 +57,8 @@ class BitflyerWebsocket(WebsocketBase):
                     elif 'error' in msg:
                         err = msg['error']
                         code, message = err.get('code'), err.get('message')
-                        self.log.info(f'{req} => {code}, {message}')
+                        self.log.error(f'{req} => {code}, {message}')
+
                         if id_ == self.__auth_id:
                             self.is_auth = False
 
