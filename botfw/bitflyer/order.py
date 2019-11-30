@@ -53,24 +53,24 @@ class BitflyerOrderInfo(OrderInfo):
 
 class BitflyerOrderEvent:
     pass
+
     # https://bf-lightning-api.readme.io/docs/realtime-child-order-events
     # [Property]       [Type] [Description]
-    # product_code     String BTC_JPY,FX_BTC_JPY など
-    # child_order_id   String 注文ID
-    # child_order_acc~ String 注文の受付ID
-    # event_date       String イベントの発生時間
-    # event_type       String イベントの種類:
-    #                         ORDER, ORDER_FAILED, CANCEL,
+    # product_code     String BTC_JPY,FX_BTC_JPY, etc.
+    # child_order_id   String order id(never used)
+    # child_order_acc~ String child_order_acceptance_id(=id)
+    # event_date       String Event occurrence time
+    # event_type       String ORDER, ORDER_FAILED, CANCEL,
     #                         CANCEL_FAILED, EXECUTION, EXPIRE
-    # child_order_type String 注文の種類 (ORDER)
-    # expire_date      String 注文の期限 (ORDER, EXECUTION)
-    # reason           String 注文が拒否された理由 (ORDER_FAILED)
-    # exec_id          Number 約定ID (EXECUTION)
-    # side             String 売買種別: SELL, BUY (ORDER, EXECUTION)
-    # price            Number 価格 (ORDER, EXECUTION)
-    # size             Number 数量 (ORDER, EXECUTION)
-    # commission       Number 手数料 (EXECUTION)
-    # sfd              Number SFD徴収額 (EXECUTION)
+    # child_order_type String LIMIT, MARKET (ORDER)
+    # expire_date      String Order deadline (ORDER, EXECUTION)
+    # reason           String Reason why order was rejected (ORDER_FAILED)
+    # exec_id          Number execution id (EXECUTION)
+    # side             String SELL, BUY (ORDER, EXECUTION)
+    # price            Number price (ORDER, EXECUTION)
+    # size             Number amount (ORDER, EXECUTION)
+    # commission       Number Order execution fee (EXECUTION)
+    # sfd              Number swap for difference (EXECUTION)
 
 
 class BitflyerOrderManager:
