@@ -6,10 +6,11 @@ from ..etc.util import run_forever_nonblocking
 
 
 class ApiBase:
-    def __init__(self, max_capacity=100):
+    def __init__(self, max_capacity=60, api_per_second=1):
         self.log = logging.getLogger(self.__class__.__name__)
         self.max_capacity = max_capacity
         self.capacity = max_capacity
+        self.api_per_second = 1
         self.count = collections.defaultdict(lambda: 0)
 
         run_forever_nonblocking(self.__worker, self.log, 1)
@@ -30,4 +31,4 @@ class ApiBase:
 
     def __worker(self):
         if self.capacity < self.max_capacity:
-            self.capacity += 1
+            self.capacity += self.api_per_second
