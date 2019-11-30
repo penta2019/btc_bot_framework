@@ -24,11 +24,12 @@ class BitmexWebsocket(WebsocketBase):
         self.__request_tabl[id_] = description or msg
         return id_
 
-    def _authenticate(self, key, secret):
+    def _authenticate(self):
         expires = int(time.time() * 1000)
-        sign = hmac.new(secret.encode(), f'GET/realtime{expires}'.encode(),
-                        hashlib.sha256).hexdigest()
-        id_ = self.command('authKeyExpires', [key, expires, sign])
+        sign = hmac.new(
+            self.__secret.encode(), f'GET/realtime{expires}'.encode(),
+            hashlib.sha256).hexdigest()
+        id_ = self.command('authKeyExpires', [self.__key, expires, sign])
         self.__auth_id = id_
 
     def _subscribe(self, ch):
