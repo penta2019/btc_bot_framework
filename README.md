@@ -71,7 +71,8 @@ samples内のファイルを参照してください。
 * samples/bitflyer/simple_example_bot.py 簡単なbotの実装例。あくまで使い方を確認する用。
 * samples/bitlyfer/trade.py 約定データを取得して表示します。
 * samples/bitflyer/orderbook.py 板情報を取得して表示します。
-trade及びorderbookの利用方法は`botfw/base.py`内のtest_trade()とtest_orderbook()を参照してください。
+<br>
+trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照してください。それぞれ 'botfw/base/trade.py' と 'botfw/base/orderbook.py' 内にあります。
 
 ## プロジェクト構成
 **TODO**<br>
@@ -81,12 +82,15 @@ trade及びorderbookの利用方法は`botfw/base.py`内のtest_trade()とtest_o
 * test – TODO
 
 ## コーディングのスタイルとポリシー
-* 特に理由がない場合はpep8に準拠します。
+* 多少コードが冗長になる場合でも、基本的には設計上の正しさを優先します。
+* フレームワーク部分（botfw）については以下の規則を適用します。
+    * pep8（flake8）に準拠。ただし__init__.pyは例外
+    * コメントを含めて英語(askiiコードのみ)で記述。それ以外のsampleやgitログ等は自由。ただし、外部リファレンスをコピペする場合は例外。
 * メソッド名や引数の変数名とその順序、また定数変数（全部大文字の変数）の内部値は可能な限りccxtと揃えます。
     * 注意: 例えば、bitflyerのsideは'BUY'または'SELL'ですが、この規則により'buy', 'sell'とします。<br>
     * 取引所固有の変数名についてはその取引所の公式リファレンスに準拠します。
-* 多少コードが冗長になる場合でも、基本的には設計上の正しさを優先します。
 * メソッド名の英単語は省略しませんが、変数名、及び引数名は意味の分かる範囲内で自由に省略します。
+
 
 ## 今後の予定
 * ポジションずれの自動修正オプションの実装
