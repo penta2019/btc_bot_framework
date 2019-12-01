@@ -92,7 +92,7 @@ class BitflyerOrderManager:
                      minute_to_expire=43200, time_in_force=GTC):
         o = BitflyerOrderInfo(symbol, type_, side, amount, price,
                               minute_to_expire, time_in_force)
-        self.create_order_from_orderinfo(o)
+        return self.create_order_from_orderinfo(o)
 
     def create_order_from_orderinfo(self, o):
         try:
