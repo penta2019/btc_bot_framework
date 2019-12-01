@@ -9,38 +9,35 @@ from .util import run_forever_nonblocking
 class Cmd:
     def __init__(self, port):
         self.log = logging.getLogger(self.__class__.__name__)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(('localhost', port))
-        self.__commands = {'help': self.help}
+        self.sock_addr = ('localhost', port)
 
+        # {cmd:(func, log, response)}
+        self.__commands = {'help': (self.help, True, True)}
+        self.__sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.__sock.bind(self.sock_addr)
+
+        self.log.info(f'open udp socket {self.sock_addr}')
         run_forever_nonblocking(self.__worker, self.log, 0)
 
-    def register_class_methods_as_command(self, obj):
-        for a in dir(obj):
-            if a[0] == '_':
-                continue  # skip __init__ or other private methods
+    def register_command(self, func, log=True, response=True):
+        if not callable(func):
+            raise Exception(f'"{func}" is not callable')
 
-            h = getattr(obj, a)
-            if inspect.ismethod(h):
-                if a in self.__commands:
-                    self.log.error(
-                        f'Command "{a}" already exists. Skipping')
-                    continue
-                self.__commands[a] = h
+        self.__commands[func.__name__] = (func, log, response)
 
     def help(self):
         '''Show command list'''
         details = []
-        for a, h in self.__commands.items():
+        for name, (func, log, res) in self.__commands.items():
             # get cmd name and args
-            spec = inspect.getargspec(h)
+            spec = inspect.getargspec(func)
             args = ' '.join(spec.args[1:])
             if spec.varargs:
                 args += ' args...'
 
             # format doc string
-            if h.__doc__:
-                lines = h.__doc__.split('\n')
+            if func.__doc__:
+                lines = func.__doc__.split('\n')
                 if lines and not lines[0].lstrip():
                     del lines[0]  # delete empty head line
                 if lines and not lines[-1].lstrip():
@@ -50,26 +47,31 @@ class Cmd:
             else:
                 doc = '    no document'
 
-            details.append(f'{a} {args}\n{doc}')
+            details.append(f'{name} {args}\n{doc}')
         return 'usage: Command args...\n' + '\n'.join(details)
 
     def __worker(self):
         try:
-            msg, addr = self.sock.recvfrom(2 ** 16)
+            msg, addr = self.__sock.recvfrom(2 ** 16)
             msg = msg.decode().rstrip()
             args = msg.split()
             if not args:
                 return
 
             cmd = args[0]
-            if cmd in self.__commands:
-                res = self.__commands[cmd](*args[1:])
+            cmd_info = self.__commands.get(cmd)
+            if cmd_info:
+                func, log, response = cmd_info
+                result = func(*args[1:])
             else:
-                res = f'command "{cmd}" not found'
+                result = f'command "{cmd}" not found'
+                log, response = True, True
         except socket.timeout:
             return
         except Exception:
-            res = traceback.format_exc()
+            result = traceback.format_exc()
 
-        self.log.info(f'recv {addr}: {msg} =>\n{res}')
-        self.sock.sendto(f'{res}\n'.encode(), addr)
+        if response:
+            self.__sock.sendto(f'{result}\n'.encode(), addr)
+        if log:
+            self.log.info(f'recv {addr}: {msg} =>\n{result}')
