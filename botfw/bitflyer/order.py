@@ -1,5 +1,4 @@
 import time
-import collections
 
 from ..base.order import (
     BUY, SELL,
@@ -25,7 +24,6 @@ BTC_JPY = 'BTC_JPY'
 ETH_JPY = 'ETH_JPY'
 # ETH_BTC = 'ETH_BTC'
 # BCH_BTC = 'BCH_BTC'
-SYMBOLS = [FX_BTC_JPY, BTC_JPY, ETH_JPY]
 
 # Time in force
 GTC = 'GTC'
@@ -39,28 +37,6 @@ EVENT_CANCEL = 'CANCEL'
 EVENT_CANCEL_FAILED = 'CANCEL_FAILED'
 EVENT_EXECUTION = 'EXECUTION'
 EVENT_EXPIRE = 'EXPIRE'
-
-
-class BitflyerOrderEvent:
-    pass
-
-    # https://bf-lightning-api.readme.io/docs/realtime-child-order-events
-    # [Property]       [Type] [Description]
-    # product_code     String BTC_JPY,FX_BTC_JPY, etc.
-    # child_order_id   String order id(never used)
-    # child_order_acc~ String child_order_acceptance_id(=id)
-    # event_date       String Event occurrence time
-    # event_type       String ORDER, ORDER_FAILED, CANCEL,
-    #                         CANCEL_FAILED, EXECUTION, EXPIRE
-    # child_order_type String LIMIT, MARKET (ORDER)
-    # expire_date      String Order deadline (ORDER, EXECUTION)
-    # reason           String Reason why order was rejected (ORDER_FAILED)
-    # exec_id          Number execution id (EXECUTION)
-    # side             String SELL, BUY (ORDER, EXECUTION)
-    # price            Number price (ORDER, EXECUTION)
-    # size             Number amount (ORDER, EXECUTION)
-    # commission       Number Order execution fee (EXECUTION)
-    # sfd              Number swap for difference (EXECUTION)
 
 
 class BitflyerOrder(OrderBase):
@@ -193,7 +169,7 @@ class BitflyerOrderGroup(OrderGroupBase):
 class BitflyerOrderGroupManager(OrderGroupManagerBase):
     OrderGroup = BitflyerOrderGroup
     PositionGroup = BitflyerPositionGroup
-    SYMBOLS = []
+    SYMBOLS = [FX_BTC_JPY, BTC_JPY, ETH_JPY]
 
     def __init__(self, order_manager, retention=60,
                  trades={}, position_sync_symbols=[]):
@@ -244,3 +220,25 @@ class BitflyerOrderGroupManager(OrderGroupManagerBase):
                 self.log.info(
                     f'Destroyed order group "{og.name}" successfully.')
                 break
+
+
+class BitflyerOrderEvent:
+    pass
+
+    # https://bf-lightning-api.readme.io/docs/realtime-child-order-events
+    # [Property]       [Type] [Description]
+    # product_code     String BTC_JPY,FX_BTC_JPY, etc.
+    # child_order_id   String order id(never used)
+    # child_order_acc~ String child_order_acceptance_id(=id)
+    # event_date       String Event occurrence time
+    # event_type       String ORDER, ORDER_FAILED, CANCEL,
+    #                         CANCEL_FAILED, EXECUTION, EXPIRE
+    # child_order_type String LIMIT, MARKET (ORDER)
+    # expire_date      String Order deadline (ORDER, EXECUTION)
+    # reason           String Reason why order was rejected (ORDER_FAILED)
+    # exec_id          Number execution id (EXECUTION)
+    # side             String SELL, BUY (ORDER, EXECUTION)
+    # price            Number price (ORDER, EXECUTION)
+    # size             Number amount (ORDER, EXECUTION)
+    # commission       Number Order execution fee (EXECUTION)
+    # sfd              Number swap for difference (EXECUTION)
