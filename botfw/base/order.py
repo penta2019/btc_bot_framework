@@ -1,5 +1,25 @@
-class OrderManagerBase:
-    pass
+import time
+import logging
+import threading
+import collections
+
+from ..etc.util import run_forever_nonblocking
+
+
+# Order Side
+BUY = 'buy'
+SELL = 'sell'
+
+# Order Type
+LIMIT = 'limit'
+MARKET = 'market'
+
+# Order state
+OPEN = 'open'
+CLOSED = 'closed'
+CANCELED = 'canceled'
+WAIT_OPEN = 'wait_open'
+WAIT_CANCEL = 'wait_cancel'
 
 
 class OrderBase(dict):
@@ -29,12 +49,79 @@ class OrderBase(dict):
         self.event_cb = None    # callback: cb(event)
 
 
-class OrderGroupManagerBase:
-    pass
+class OrderManagerBase:
+    Order = OrderBase
 
+    def __init__(self, api, ws, external=True, retention=60):
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.api = api  # Api object
+        self.ws = ws  # Websocket class (with auth)
+        self.ws.add_after_auth_callback(self._after_auth)
+        self.external = external  # True to allow external orders
+        self.retention = retention  # retantion time of closed(canceled) order
+        self.orders = {}  # {id: Order}
 
-class OrderGroupBase:
-    pass
+        self._old_orders = collections.deque()
+        self._event_queue = collections.deque()
+        self._count_lock = 0
+
+        run_forever_nonblocking(self.__worker, self.log, 1)
+
+    def create_order(self, symbol, type_, side, amount, price=0):
+        o = self.Order(symbol, type_, side, amount, price)
+        return self.create_order_internal(o)
+
+    def create_order_internal(self, o):
+        try:
+            self._count_lock += 1
+
+            res = self.api.create_order(
+                o.symbol, o.type, o.side, o.amount, o.price)
+            o.id = res['id']
+            o.state, o.state_ts = WAIT_OPEN, time.time()
+            self.orders[o.id] = o
+        finally:
+            self._count_lock -= 1
+
+        return o
+
+    def cancel_order(self, o):
+        self.api.cancel_order(o.id, o.symbol)
+        o.state = WAIT_CANCEL
+        o.state_ts = time.time()
+
+    def _init(self):
+        self.orders = {}
+        self._old_orders = collections.deque()
+        self._event_queue = collections.deque()
+
+    def _after_auth(self):
+        assert False
+
+    def _handle_events(self):
+        assert False
+
+    def __cancel_external_orders(self):
+        for o in self.orders.values():
+            if o.external and o.state == OPEN:
+                self.log.warn(
+                    f'cancel external order: {o.id}')
+                self.cancel_order(o)
+
+    def __remove_old_order(self):
+        while self._old_orders:
+            o = self._old_orders[0]
+            if time.time() - o.state_ts > self.retention:
+                self._old_orders.popleft()
+                self.orders.pop(o.id, None)
+            else:
+                break
+
+    def __worker(self):
+        self._handle_events()
+        self.__remove_old_order()
+        if not self.external:
+            self.__cancel_external_orders()
 
 
 class PositionGroupBase(dict):
@@ -64,3 +151,106 @@ class PositionGroupBase(dict):
 
     def update_unrealized_pnl(self, price):
         self.unrealized_pnl = self.gain + price * self.position
+
+    def _handle_event(self, e):
+        assert False  # must be overrided
+
+
+class OrderGroupBase:
+    Order = OrderBase
+    PositionGroup = PositionGroupBase
+
+    def __init__(self, manager, name, symbol):
+
+        self.name = name
+        self.symbol = symbol
+        self.manager = manager
+        self.position_group = self.PositionGroup()
+        self.orders = {}
+
+    def create_order(self, type_, side, amount, price=0, *kwargs):
+        o = self.Order(self.symbol, type_, side, amount, price, *kwargs)
+        o.event_cb = self.position_group._handle_event
+        o.group_name = self.name
+        o = self.manager.order_manager.create_order_internal(o)
+        self.orders[o.id] = o
+        return o
+
+    def cancel_order(self, o):
+        self.manager.order_manager.cancel_order(o)
+
+    def remove_closed_orders(self, retention=0):
+        now = time.time()
+        for id_, o in self.orders.items():
+            if o.state in [CLOSED, CANCELED]:
+                if o.state_ts - now > retention:
+                    del self.orders[id_]
+
+
+class OrderGroupManagerBase:
+    OrderGroup = OrderGroupBase
+    PositionGroup = PositionGroupBase
+    SYMBOLS = []
+
+    def __init__(self, order_manager, retention=60,
+                 trades={}, position_sync_symbols=[]):
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.order_manager = order_manager
+        self.order_groups = {}
+        self.position_sync_symbols = position_sync_symbols  # TODO
+        self.trades = trades  # {symbol:Trade}, used to update unrealized pnl
+        self.retention = retention
+
+        run_forever_nonblocking(self.__worker, self.log, 1)
+
+    def create_order_group(self, name, symbol):
+        if name in self.order_groups:
+            self.log.error('Failed to create order group. '
+                           f'Order group "{name}" already exists.')
+            return None
+
+        og = self.OrderGroup(self, name, symbol)
+        self.order_groups[name] = og
+        return og
+
+    def destroy_order_group(self, og, clean=True):
+        name = og.name
+        if name not in self.order_groups:
+            self.log.error('Failed to destroy order group. '
+                           f'Unknown order group "{name}". ')
+
+        og = self.order_groups.pop(name)
+        og.clean = clean  # whether to clean OrderGroup position
+
+        thread = threading.Thread(
+            name=f'clean_{og.name}', target=self._worker_destroy_order_group,
+            args=[og])
+        thread.daemon = True
+        thread.start()
+
+    def get_total_positions(self):
+        positions = {}
+        for s in self.SYMBOLS:
+            positions[s] = self.PositionGroup()
+
+        for og in self.order_groups.values():
+            p0, p = positions[og.symbol], og.position
+            for k in p:
+                p0[k] += p[k]
+
+        return positions
+
+    def _worker_destroy_order_group(self, og):
+        assert False  # must be overrided
+
+    def __worker(self):
+        # remove closed orders older than retention time
+        if self.retention is not None:
+            for og in self.order_groups.values():
+                og.remove_closed_orders(self.retention)
+
+        # update unrealized pnl if possible
+        for og in self.order_groups.values():
+            t = self.trades.get(og.symbol)
+            if t and t.ltp:
+                og.position_group.update_unrealized_pnl(t.ltp)

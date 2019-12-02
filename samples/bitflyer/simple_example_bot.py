@@ -9,7 +9,7 @@ import ccxt
 from botfw.bitflyer import *
 from botfw.etc.util import setup_logger
 
-account = json.loads(open('account_info.json').read())
+account = json.loads(open('bitflyer/account_info.json').read())
 KEY = account['key']  # YOUR_API_KEY
 SECRET = account['secret']  # YOUR_API_SECRET
 
