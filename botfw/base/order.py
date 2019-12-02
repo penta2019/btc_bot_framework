@@ -1,4 +1,8 @@
-class OrderInfo(dict):
+class OrderManagerBase:
+    pass
+
+
+class OrderBase(dict):
     def __init__(self, symbol, type_, side, amount, price=0):
         super().__init__()
         self.__dict__ = self
@@ -21,6 +25,14 @@ class OrderInfo(dict):
         self.external = False   # True if order is created outside OrderManager
         self.event_cb = None    # callback: cb(event)
         self.group_name = None  # OrderGroup name
+
+
+class OrderGroupManagerBase:
+    pass
+
+
+class OrderGroupBase:
+    pass
 
 
 class PositionGroupBase(dict):

@@ -3,7 +3,11 @@ import logging
 import collections
 import threading
 
-from ..base.order import OrderInfo, PositionGroupBase
+from ..base.order import (
+    OrderManagerBase, OrderBase,
+    OrderGroupManagerBase, OrderGroupBase,
+    PositionGroupBase
+)
 from ..etc.util import run_forever_nonblocking, unix_time_from_ISO8601Z
 
 # Order Side
@@ -43,14 +47,6 @@ EVENT_EXECUTION = 'EXECUTION'
 EVENT_EXPIRE = 'EXPIRE'
 
 
-class BitflyerOrderInfo(OrderInfo):
-    def __init__(self, symbol, type_, side, amount, price=0,
-                 minute_to_expire=43200, time_in_force=GTC):
-        super().__init__(symbol, type_, side, amount, price)
-        self.minute_to_expire = minute_to_expire
-        self.time_in_force = time_in_force
-
-
 class BitflyerOrderEvent:
     pass
 
@@ -73,8 +69,9 @@ class BitflyerOrderEvent:
     # sfd              Number swap for difference (EXECUTION)
 
 
-class BitflyerOrderManager:
+class BitflyerOrderManager(OrderManagerBase):
     def __init__(self, api, ws, external=True, retention=60):
+        super().__init__()
         self.log = logging.getLogger(self.__class__.__name__)
         self.api = api  # BitflyerApi
         self.ws = ws  # BitflyerWs (with auth)
@@ -90,8 +87,8 @@ class BitflyerOrderManager:
 
     def create_order(self, symbol, type_, side, amount, price=0,
                      minute_to_expire=43200, time_in_force=GTC):
-        o = BitflyerOrderInfo(symbol, type_, side, amount, price,
-                              minute_to_expire, time_in_force)
+        o = BitflyerOrder(symbol, type_, side, amount, price,
+                          minute_to_expire, time_in_force)
         return self.create_order_from_orderinfo(o)
 
     def create_order_from_orderinfo(self, o):
@@ -141,7 +138,7 @@ class BitflyerOrderManager:
             o = self.__get_order(e)
             if not o:  # if order is not created by this class
                 if e.event_type == EVENT_ORDER:
-                    o = BitflyerOrderInfo(
+                    o = BitflyerOrder(
                         e.product_code, e.child_order_type,
                         e.side, e.size, e.price)
                     o.external = True
@@ -219,60 +216,18 @@ class BitflyerOrderManager:
             self.__cancel_external_orders()
 
 
-class BitflyerPositionGroup(PositionGroupBase):
-    def __init__(self):
-        super().__init__()
-        self.sfd = 0  # total sfd
-        self.commission = 0  # total commissions in jpy
-
-    def handle_event(self, e):
-        if e.event_type != EVENT_EXECUTION:
-            return
-
-        p = e.price
-        s = e.size * (1 if e.side == BUY else -1)
-        c = e.commission
-        sfd = e.sfd
-
-        self.update(p, s)
-        self.position = round(self.position - c, 8)
-        self.sfd += sfd
-        self.commission += p * c
-        self.pnl += -p * c + sfd
+class BitflyerOrder(OrderBase):
+    def __init__(self, symbol, type_, side, amount, price=0,
+                 minute_to_expire=43200, time_in_force=GTC):
+        super().__init__(symbol, type_, side, amount, price)
+        self.minute_to_expire = minute_to_expire
+        self.time_in_force = time_in_force
 
 
-class BitflyerOrderGroup:
-    def __init__(self, manager, name, symbol):
-        self.name = name
-        self.symbol = symbol
-        self.manager = manager
-        self.position_group = BitflyerPositionGroup()
-        self.orders = {}
-
-    def create_order(self, type_, side, amount, price=0,
-                     minute_to_expire=43200, time_in_force=GTC):
-        o = BitflyerOrderInfo(self.symbol, type_, side, amount, price,
-                              minute_to_expire, time_in_force)
-        o.event_cb = self.position_group.handle_event
-        o.group_name = self.name
-        o = self.manager.order_manager.create_order_from_orderinfo(o)
-        self.orders[o.id] = o
-        return o
-
-    def cancel_order(self, o):
-        self.manager.order_manager.cancel_order(o)
-
-    def remove_closed_orders(self, retention=0):
-        now = time.time()
-        for id_, o in self.orders.items():
-            if o.state in [CLOSED, CANCELED]:
-                if o.state_ts - now > retention:
-                    del self.orders[id_]
-
-
-class BitflyerOrderGroupManager:
+class BitflyerOrderGroupManager(OrderGroupManagerBase):
     def __init__(self, order_manager, trades={},
                  position_sync_symbols=[], retention=60):
+        super().__init__()
         self.log = logging.getLogger(self.__class__.__name__)
         self.order_manager = order_manager
         self.order_groups = {}
@@ -375,3 +330,55 @@ class BitflyerOrderGroupManager:
                 self.log.info(
                     f'Destroyed order group "{og.name}" successfully.')
                 break
+
+
+class BitflyerOrderGroup(OrderGroupBase):
+    def __init__(self, manager, name, symbol):
+        super().__init__()
+        self.name = name
+        self.symbol = symbol
+        self.manager = manager
+        self.position_group = BitflyerPositionGroup()
+        self.orders = {}
+
+    def create_order(self, type_, side, amount, price=0,
+                     minute_to_expire=43200, time_in_force=GTC):
+        o = BitflyerOrder(self.symbol, type_, side, amount, price,
+                          minute_to_expire, time_in_force)
+        o.event_cb = self.position_group.handle_event
+        o.group_name = self.name
+        o = self.manager.order_manager.create_order_from_orderinfo(o)
+        self.orders[o.id] = o
+        return o
+
+    def cancel_order(self, o):
+        self.manager.order_manager.cancel_order(o)
+
+    def remove_closed_orders(self, retention=0):
+        now = time.time()
+        for id_, o in self.orders.items():
+            if o.state in [CLOSED, CANCELED]:
+                if o.state_ts - now > retention:
+                    del self.orders[id_]
+
+
+class BitflyerPositionGroup(PositionGroupBase):
+    def __init__(self):
+        super().__init__()
+        self.sfd = 0  # total sfd
+        self.commission = 0  # total commissions in jpy
+
+    def handle_event(self, e):
+        if e.event_type != EVENT_EXECUTION:
+            return
+
+        p = e.price
+        s = e.size * (1 if e.side == BUY else -1)
+        c = e.commission
+        sfd = e.sfd
+
+        self.update(p, s)
+        self.position = round(self.position - c, 8)
+        self.sfd += sfd
+        self.commission += p * c
+        self.pnl += -p * c + sfd
