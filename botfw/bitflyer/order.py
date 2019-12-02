@@ -89,9 +89,9 @@ class BitflyerOrderManager(OrderManagerBase):
                      minute_to_expire=43200, time_in_force=GTC):
         o = BitflyerOrder(symbol, type_, side, amount, price,
                           minute_to_expire, time_in_force)
-        return self.create_order_from_orderinfo(o)
+        return self.create_order_internal(o)
 
-    def create_order_from_orderinfo(self, o):
+    def create_order_internal(self, o):
         try:
             self.__count_lock += 1
 
@@ -138,35 +138,18 @@ class BitflyerOrderManager(OrderManagerBase):
             o = self.__get_order(e)
             if not o:  # if order is not created by this class
                 if e.event_type == EVENT_ORDER:
+                    id_ = e.child_order_acceptance_id
                     o = BitflyerOrder(
                         e.product_code, e.child_order_type,
                         e.side, e.size, e.price)
+                    o.id = id_
                     o.external = True
                     o.state, o.state_ts = WAIT_OPEN, time.time()
-                    self.orders[e.child_order_acceptance_id] = o
+                    self.orders[id_] = o
                 else:
                     self.log.warn(f'event for unknown order: {e.__dict__}')
                     continue
             self.__update_order(o, e)
-
-    def __remove_old_order(self):
-        while self.__old_orders:
-            o = self.__old_orders[0]
-            if time.time() - o.state_ts > self.retention:
-                self.__old_orders.popleft()
-                self.orders.pop(o.id, None)
-            else:
-                break
-
-    def __cancel_external_orders(self):
-        for o in self.orders.values():
-            if o.external and o.state == OPEN:
-                self.log.warn(
-                    f'cancel external order: {o.id}')
-                self.cancel_order(o)
-
-    def __get_order(self, e):
-        return self.orders.get(e.child_order_acceptance_id)
 
     def __update_order(self, o, e):
         t = e.event_type
@@ -184,12 +167,12 @@ class BitflyerOrderManager(OrderManagerBase):
                 self.log.warn('something wrong with order state handling')
         elif t == EVENT_ORDER:
             o.open_ts = ts
-            o.id = id_
             o.child_order_id = e.child_order_id
             if o.state == WAIT_OPEN:
                 o.state, o.state_ts = OPEN, now
         elif t == EVENT_ORDER_FAILED:
             o.state, o.state_ts = CANCELED, now
+            self.__old_orders.append(o)
             self.log.warn(f'order failed: {id_} {e.reason}')
         elif t == EVENT_CANCEL:
             o.state, o.state_ts = CANCELED, now
@@ -208,6 +191,25 @@ class BitflyerOrderManager(OrderManagerBase):
 
         if o.event_cb:
             o.event_cb(e)
+
+    def __get_order(self, e):
+        return self.orders.get(e.child_order_acceptance_id)
+
+    def __remove_old_order(self):
+        while self.__old_orders:
+            o = self.__old_orders[0]
+            if time.time() - o.state_ts > self.retention:
+                self.__old_orders.popleft()
+                self.orders.pop(o.id, None)
+            else:
+                break
+
+    def __cancel_external_orders(self):
+        for o in self.orders.values():
+            if o.external and o.state == OPEN:
+                self.log.warn(
+                    f'cancel external order: {o.id}')
+                self.cancel_order(o)
 
     def __worker(self):
         self.__handle_events()
@@ -347,7 +349,7 @@ class BitflyerOrderGroup(OrderGroupBase):
                           minute_to_expire, time_in_force)
         o.event_cb = self.position_group.handle_event
         o.group_name = self.name
-        o = self.manager.order_manager.create_order_from_orderinfo(o)
+        o = self.manager.order_manager.create_order_internal(o)
         self.orders[o.id] = o
         return o
 

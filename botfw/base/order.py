@@ -23,8 +23,10 @@ class OrderBase(dict):
         self.open_ts = None     # open timestamp
         self.close_ts = None    # close timestamp
         self.external = False   # True if order is created outside OrderManager
-        self.event_cb = None    # callback: cb(event)
+
+        # Order Group Mangement Info
         self.group_name = None  # OrderGroup name
+        self.event_cb = None    # callback: cb(event)
 
 
 class OrderGroupManagerBase:
