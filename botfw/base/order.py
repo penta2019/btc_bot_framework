@@ -129,31 +129,33 @@ class PositionGroupBase(dict):
         super().__init__()
         self.__dict__ = self
         self.position = 0
-        self.gain = 0
         self.pnl = 0
         self.unrealized_pnl = 0
+        self.average_price = 0
 
     def update(self, price, size):
-        pos, gain = size, price * -size
-        new_pos = self.position + pos
+        avg0, pos0 = self.average_price, self.position
+        avg1, pos1 = price, size
+        pos = pos0 + pos1
 
-        if self.position * size >= 0:
-            new_gain = self.gain + gain
-        else:
-            p, g = (pos, gain) if new_pos * \
-                pos > 0 else (self.position, self.gain)
-            new_gain = g * new_pos / p
+        if pos == 0:
+            avg = 0
+        elif pos0 * pos1 >= 0:
+            avg = (avg0 * pos0 + avg1 * pos1) / pos
+        elif pos * pos0 > 0:
+            avg = avg0
+        else:  # pos * pos1 > 0
+            avg = avg1
 
-        self.pnl += self.gain + gain - new_gain
-        self.position = new_pos
-        self.gain = new_gain
+        pnl = avg * pos - avg0 * pos0 - avg1 * pos1
+
+        self.position = pos
+        self.average_price = avg
+        self.pnl += pnl
         self.update_unrealized_pnl(price)
 
     def update_unrealized_pnl(self, price):
-        self.unrealized_pnl = self.gain + price * self.position
-
-    def _handle_event(self, e):
-        assert False  # must be overrided
+        self.unrealized_pnl = (price - self.average_price) * self.position
 
 
 class OrderGroupBase:
@@ -161,7 +163,6 @@ class OrderGroupBase:
     PositionGroup = PositionGroupBase
 
     def __init__(self, manager, name, symbol):
-
         self.name = name
         self.symbol = symbol
         self.manager = manager
@@ -170,7 +171,7 @@ class OrderGroupBase:
 
     def create_order(self, type_, side, amount, price=0, *kwargs):
         o = self.Order(self.symbol, type_, side, amount, price, *kwargs)
-        o.event_cb = self.position_group._handle_event
+        o.event_cb = self._handle_event
         o.group_name = self.name
         o = self.manager.order_manager.create_order_internal(o)
         self.orders[o.id] = o
@@ -185,6 +186,9 @@ class OrderGroupBase:
             if o.state in [CLOSED, CANCELED]:
                 if o.state_ts - now > retention:
                     del self.orders[id_]
+
+    def _handle_event(self, e):
+        assert False
 
 
 class OrderGroupManagerBase:

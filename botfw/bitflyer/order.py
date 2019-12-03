@@ -50,9 +50,6 @@ class BitflyerOrder(OrderBase):
 class BitflyerOrderManager(OrderManagerBase):
     Order = BitflyerOrder
 
-    def __init__(self, api, ws, external=True, retention=60):
-        super().__init__(api, ws, external, retention)
-
     def _after_auth(self):
         self._init()
         self.ws.subscribe('child_order_events', self.__on_events)
@@ -142,39 +139,31 @@ class BitflyerPositionGroup(PositionGroupBase):
         self.sfd = 0  # total sfd
         self.commission = 0  # total commissions in jpy
 
-    def _handle_event(self, e):
-        if e.event_type != EVENT_EXECUTION:
-            return
-
-        p = e.price
-        s = e.size * (1 if e.side == BUY else -1)
-        c = e.commission
-        sfd = e.sfd
-
-        self.update(p, s)
-        self.position = round(self.position - c, 8)
+    def update(self, price, size, comission, sfd):
+        super().update(price, size)
+        self.position = round(self.position - comission, 8)
+        c = price * comission
+        self.commission += c
         self.sfd += sfd
-        self.commission += p * c
-        self.pnl += -p * c + sfd
+        self.pnl += -c + sfd
 
 
 class BitflyerOrderGroup(OrderGroupBase):
     Order = BitflyerOrder
     PositionGroup = BitflyerPositionGroup
 
-    def __init__(self, manager, name, symbol):
-        super().__init__(manager, name, symbol)
+    def _handle_event(self, e):
+        if e.event_type != EVENT_EXECUTION:
+            return
+
+        size = e.size * (1 if e.side == BUY else -1)
+        self.position_group.update(e.price, size, e.comission, e.sfd)
 
 
 class BitflyerOrderGroupManager(OrderGroupManagerBase):
     OrderGroup = BitflyerOrderGroup
     PositionGroup = BitflyerPositionGroup
     SYMBOLS = [FX_BTC_JPY, BTC_JPY, ETH_JPY]
-
-    def __init__(self, order_manager, retention=60,
-                 trades={}, position_sync_symbols=[]):
-        super().__init__(order_manager, retention,
-                         trades, position_sync_symbols)
 
     def _worker_destroy_order_group(self, og):
         while True:
