@@ -125,13 +125,15 @@ class OrderManagerBase:
 
 
 class PositionGroupBase(dict):
+    SIZE_IN_FIAT = False
+
     def __init__(self):
         super().__init__()
         self.__dict__ = self
         self.position = 0
         self.pnl = 0
         self.unrealized_pnl = 0
-        self.average_price = 0
+        self.average_price = 1
 
     def update(self, price, size):
         avg0, pos0 = self.average_price, self.position
@@ -139,15 +141,21 @@ class PositionGroupBase(dict):
         pos = pos0 + pos1
 
         if pos == 0:
-            avg = 0
+            avg = 1
         elif pos0 * pos1 >= 0:
-            avg = (avg0 * pos0 + avg1 * pos1) / pos
+            if self.SIZE_IN_FIAT:
+                avg = (pos0 + pos1) / (pos0 / avg0 + pos1 / avg1)
+            else:
+                avg = (avg0 * pos0 + avg1 * pos1) / pos
         elif pos * pos0 > 0:
             avg = avg0
         else:  # pos * pos1 > 0
             avg = avg1
 
-        pnl = avg * pos - avg0 * pos0 - avg1 * pos1
+        if self.SIZE_IN_FIAT:
+            pnl = ((pos0 / avg0) + (pos1 / avg1) - (pos / avg)) * price
+        else:
+            pnl = avg * pos - avg0 * pos0 - avg1 * pos1
 
         self.position = pos
         self.average_price = avg
@@ -155,7 +163,11 @@ class PositionGroupBase(dict):
         self.update_unrealized_pnl(price)
 
     def update_unrealized_pnl(self, price):
-        self.unrealized_pnl = (price - self.average_price) * self.position
+        if self.SIZE_IN_FIAT:
+            pnl = (1 / self.average_price - 1 / price) * self.position * price
+        else:
+            pnl = (price - self.average_price) * self.position
+        self.unrealized_pnl = pnl
 
 
 class OrderGroupBase:
