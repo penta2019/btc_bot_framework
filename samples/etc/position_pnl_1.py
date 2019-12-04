@@ -7,7 +7,7 @@ class PositionGroup(PositionGroupBase):
     SIZE_IN_FIAT = False  # デフォルトでFalseなので書かなくても良い
 
 
-pos = PositionGroup()  # side price(USD) size(USD)
+pos = PositionGroup()  # price(JPY) size(BTC)
 
 
 def update(p, s):
