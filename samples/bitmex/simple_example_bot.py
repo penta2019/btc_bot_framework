@@ -67,7 +67,7 @@ def main():
 
             # print API capacity and count
             log.info(
-                f'API: {{capacity:{api.capacity}, count:{dict(api.count)}}}')
+                f'API: {{capacity:{api.capacity}, count:{api.count}}}')
 
             # pprint.pprint(om.orders)  # print all orders
             # pprint.pprint(og.orders)  # print orders in 'fx' order group
@@ -83,7 +83,7 @@ def main():
             if sell_order:
                 sell_order = handle_old_order(sell_order)
 
-            # # create order
+            # create order
             # pos = og.position_group.position
             # if not buy_order and pos <= 0:
             #     price = best_bid[0]

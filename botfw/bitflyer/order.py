@@ -40,11 +40,7 @@ EVENT_EXPIRE = 'EXPIRE'
 
 
 class BitflyerOrder(OrderBase):
-    def __init__(self, symbol, type_, side, amount, price=0,
-                 minute_to_expire=43200, time_in_force=GTC):
-        super().__init__(symbol, type_, side, amount, price)
-        self.minute_to_expire = minute_to_expire
-        self.time_in_force = time_in_force
+    pass
 
 
 class BitflyerOrderManager(OrderManagerBase):

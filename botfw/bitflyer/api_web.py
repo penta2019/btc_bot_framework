@@ -15,12 +15,10 @@ class BitflyerApiWithWebOrder(BitflyerApi):
             login_id, password, account_id, device_id, device_token)
         self.api.login()
 
-    def create_order(self, symbol, type_, side, size, price=0,
-                     minute_to_expire=43200, time_in_force='GTC'):
-        self.api.set_timeout(20)
-        res = self._exec(self.api.send_order,
-                         symbol, type_.upper(), side.upper(), size, price,
-                         minute_to_expire, time_in_force)
+    def create_order(self, symbol, type_, side, size, price=0, params={}):
+        res = self._exec(
+            self.api.send_order, symbol,
+            type_.upper(), side.upper(), size, price, **params)
         # {'status': 0,
         #  'error_message': None,
         #  'data': {'order_ref_id': 'JRF20180509-220225-476540'}}

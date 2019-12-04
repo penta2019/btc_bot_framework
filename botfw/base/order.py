@@ -23,7 +23,7 @@ WAIT_CANCEL = 'wait_cancel'
 
 
 class OrderBase(dict):
-    def __init__(self, symbol, type_, side, amount, price=0):
+    def __init__(self, symbol, type_, side, amount, price=0, params={}):
         super().__init__()
         self.__dict__ = self
 
@@ -33,6 +33,7 @@ class OrderBase(dict):
         self.side = side
         self.amount = amount
         self.price = price
+        self.params = params
 
         # Order Management Info
         self.id = None          # exchange specific id
@@ -181,8 +182,8 @@ class OrderGroupBase:
         self.position_group = self.PositionGroup()
         self.orders = {}
 
-    def create_order(self, type_, side, amount, price=0, *kwargs):
-        o = self.Order(self.symbol, type_, side, amount, price, *kwargs)
+    def create_order(self, type_, side, amount, price=0, params={}):
+        o = self.Order(self.symbol, type_, side, amount, price, params)
         o.event_cb = self._handle_event
         o.group_name = self.name
         o = self.manager.order_manager.create_order_internal(o)

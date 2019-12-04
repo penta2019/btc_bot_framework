@@ -20,7 +20,6 @@ _DUMMY = [
 
 # Symbol
 XBT_USD = 'XBTUSD'
-SYMBOLS = [XBT_USD]
 
 # EVENT_TYPE
 EVENT_PARTIAL = 'partial'
