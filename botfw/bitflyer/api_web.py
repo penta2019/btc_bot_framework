@@ -1,4 +1,5 @@
 import json
+import logging
 from urllib.parse import urlencode
 
 import requests
@@ -8,17 +9,16 @@ from .api import BitflyerApi
 
 
 class BitflyerApiWithWebOrder(BitflyerApi):
-    def __init__(self, ccxt, login_id, password, account_id,
+    def __init__(self, ccxt_config, login_id, password, account_id,
                  device_id=None, device_token=None):
-        super().__init__(ccxt)
+        super().__init__(ccxt_config)
         self.api = BitFlyerWebAPI(
             login_id, password, account_id, device_id, device_token)
         self.api.login()
 
     def create_order(self, symbol, type_, side, size, price=0, params={}):
-        res = self._exec(
-            self.api.send_order, symbol,
-            type_.upper(), side.upper(), size, price, **params)
+        res = self.api.send_order(
+            symbol, type_.upper(), side.upper(), size, price, **params)
         # {'status': 0,
         #  'error_message': None,
         #  'data': {'order_ref_id': 'JRF20180509-220225-476540'}}
@@ -27,6 +27,19 @@ class BitflyerApiWithWebOrder(BitflyerApi):
         # -501: session expired
         # -153: minimum size >= 0.01
         # ...
+
+        if self.log.level <= logging.DEBUG:
+            self.log.debug(
+                f'request: sendorder '
+                f'{symbol} {type_} {side} {size} {price} {params}')
+
+        path = 'sendorder'
+        if path in self.count:
+            self.count[path] += 1
+        else:
+            self.count[path] = 1
+
+        self.capacity -= 1
 
         st, err = res['status'], res['error_message']
         if st != 0:

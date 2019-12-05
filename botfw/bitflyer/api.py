@@ -3,9 +3,9 @@ from ..base.api import ApiBase
 
 
 class BitflyerApi(ApiBase, ccxt.bitflyer):
-    def __init__(self, config):
+    def __init__(self, ccxt_config):
         ApiBase.__init__(self)
-        ccxt.bitflyer.__init__(self, config)
+        ccxt.bitflyer.__init__(self, ccxt_config)
 
     def fetch_boardstate(self, symbol):
         func = getattr(self, 'public_get_getboardstate')

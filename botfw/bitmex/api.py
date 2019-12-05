@@ -3,6 +3,6 @@ from ..base.api import ApiBase
 
 
 class BitmexApi(ApiBase, ccxt.bitmex):
-    def __init__(self, config):
+    def __init__(self, ccxt_config):
         ApiBase.__init__(self)
-        ccxt.bitmex.__init__(self, config)
+        ccxt.bitmex.__init__(self, ccxt_config)
