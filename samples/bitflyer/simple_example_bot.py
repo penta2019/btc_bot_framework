@@ -4,8 +4,6 @@ import json
 import traceback
 import pprint
 
-import ccxt
-
 from botfw.bitflyer import *
 from botfw.etc.util import setup_logger, run_forever_nonblocking
 
@@ -16,8 +14,7 @@ SECRET = account['secret']  # YOUR_API_SECRET
 setup_logger(logging.INFO)
 log = logging.getLogger()
 
-api_ccxt = ccxt.bitflyer({'apiKey': KEY, 'secret': SECRET})
-api = BitflyerApi(api_ccxt)
+api = BitflyerApi({'apiKey': KEY, 'secret': SECRET})
 ws = BitflyerWebsocket(KEY, SECRET)
 
 fx_trade = BitflyerTrade(FX_BTC_JPY, ws)

@@ -4,8 +4,6 @@ import json
 import traceback
 import pprint
 
-import ccxt
-
 from botfw.bitmex import *
 from botfw.etc.util import setup_logger, run_forever_nonblocking
 
@@ -16,8 +14,7 @@ SECRET = account['secret']  # YOUR_API_SECRET
 setup_logger(logging.INFO)
 log = logging.getLogger()
 
-api_ccxt = ccxt.bitmex({'apiKey': KEY, 'secret': SECRET})
-api = BitmexApi(api_ccxt)
+api = BitmexApi({'apiKey': KEY, 'secret': SECRET})
 ws = BitmexWebsocket(KEY, SECRET)
 
 trade = BitmexTrade(XBT_USD, ws)
