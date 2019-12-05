@@ -135,10 +135,10 @@ class BitflyerPositionGroup(PositionGroupBase):
         self.sfd = 0  # total sfd
         self.commission = 0  # total commissions in jpy
 
-    def update(self, price, size, comission, sfd):
+    def update(self, price, size, commission, sfd):
         super().update(price, size)
-        self.position = round(self.position - comission, 8)
-        c = price * comission
+        self.position = round(self.position - commission, 8)
+        c = price * commission
         self.commission += c
         self.sfd += sfd
         self.pnl += -c + sfd
@@ -153,7 +153,7 @@ class BitflyerOrderGroup(OrderGroupBase):
             return
 
         size = e.size * (1 if e.side == BUY else -1)
-        self.position_group.update(e.price, size, e.comission, e.sfd)
+        self.position_group.update(e.price, size, e.commission, e.sfd)
 
 
 class BitflyerOrderGroupManager(OrderGroupManagerBase):
