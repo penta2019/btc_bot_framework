@@ -1,7 +1,6 @@
 import time
 import logging
 import json
-import threading
 import traceback
 
 import websocket
@@ -10,17 +9,15 @@ from ..etc.util import run_forever_nonblocking
 
 
 class WebsocketBase:
-    def __init__(self, url, enable_auth=False):
+    def __init__(self, url):
         self.log = logging.getLogger(self.__class__.__name__)
         self.url = url
 
         self.is_open = False
         self.is_auth = None  # None: before auth, True: success, False: failed
-        self.is_auth_enabled = enable_auth
 
         self.__after_open_cb = []
         self.__after_auth_cb = []
-        self.__ch_cb_map = {}
 
         run_forever_nonblocking(self.__worker, self.log, 3)
 
@@ -63,31 +60,27 @@ class WebsocketBase:
         self.ws.send(json.dumps(msg))
         self.log.debug(f'send: {msg}')
 
-    def subscribe(self, ch, cb, ch_name=None):
-        self.__ch_cb_map[ch_name or ch] = cb
-        self._subscribe(ch)
+    def _on_auth(self, success):
+        if success:
+            self.log.info('authentication succeeded')
+            self.is_open = True
+            for cb in self.__after_auth_cb:
+                try:
+                    cb()
+                except Exception:
+                    self.log.error(traceback.format_exc())
+        else:
+            self.log.info('authentication failed')
+            self.is_open = True
 
     def _on_open(self):
         self.log.info('open websocket')
         self.is_open = True
-        self.__ch_cb_map = {}
-        try:
-            for cb in self.__after_open_cb:
+        for cb in self.__after_open_cb:
+            try:
                 cb()
-
-            def worker():
-                try:
-                    self._authenticate()
-                    self.wait_auth()
-                    for cb in self.__after_auth_cb:
-                        cb()
-                except Exception:
-                    self.log.error(traceback.format_exc())
-
-            if self.is_auth_enabled:
-                threading.Thread(target=worker).start()
-        except Exception:
-            self.log.error(traceback.format_exc())
+            except Exception:
+                self.log.error(traceback.format_exc())
 
     def _on_close(self):
         self.is_open = False
@@ -99,20 +92,6 @@ class WebsocketBase:
 
     def _on_error(self, err):
         self.log.error(f'recv: {err}')
-
-    def _authenticate(self):
-        assert False
-        return 0
-
-    def _subscribe(self, ch):
-        assert False
-        return 0
-
-    def _handle_channel_message(self, ch, msg):
-        try:
-            self.__ch_cb_map[ch](msg)
-        except Exception:
-            self.log.error(traceback.format_exc())
 
     def __worker(self):
         self.ws = websocket.WebSocketApp(

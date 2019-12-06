@@ -10,64 +10,76 @@ from ..base.websocket import WebsocketBase
 
 class BitflyerWebsocket(WebsocketBase):
     def __init__(self, key=None, secret=None):
-        super().__init__('wss://ws.lightstream.bitflyer.com/json-rpc',
-                         bool(key and secret))
+        super().__init__('wss://ws.lightstream.bitflyer.com/json-rpc')
         self.__key = key
         self.__secret = secret
-        self.__auth_id = None
         self.__next_id = 1
-        self.__request_table = {}
+        self.__request_table = {}  # (msg, cb, description)
+        self.__ch_cb_map = {}
 
-    def command(self, op, args=[], description=None):
+        if self.__key and self.__secret:
+            self.add_after_open_callback(
+                lambda: self.authenticate(self.__key, self.__secret))
+
+    def command(self, op, args=[], cb=None, description=None):
         id_ = self.__next_id
         self.__next_id += 1
         msg = {'method': op, 'params': args, 'id': id_}
         self.send(msg)
 
-        self.__request_table[id_] = description or msg
+        self.__request_table[id_] = (msg, cb, description)
         return id_
 
-    def _authenticate(self):
+    def subscribe(self, ch, cb):
+        self.command('subscribe', {'channel': ch})
+        self.__ch_cb_map[ch] = cb
+
+    def authenticate(self, key, secret):
+        def on_auth_message(msg):
+            if 'result' in msg:
+                self._on_auth(True)
+            else:
+                self._on_auth(False)
+
         now = int(time.time())
         nonce = secrets.token_hex(16)
         sign = hmac.new(self.__secret.encode(), (str(now) + nonce).encode(),
                         hashlib.sha256).hexdigest()
-        id_ = self.command('auth', {
+        self.command('auth', {
             'api_key': self.__key,
             'timestamp': now,
             'nonce': nonce,
             'signature': sign
-        })
-        self.__auth_id = id_
+        }, on_auth_message)
 
-    def _subscribe(self, ch):
-        self.command('subscribe', {'channel': ch})
+    def _on_open(self):
+        self.__next_id = 1
+        self.__request_table = {}
+        self.__ch_cb_map = {}
+        super()._on_open()
 
     def _on_message(self, msg):
         try:
             msg = json.loads(msg)
-            ch = None
             if msg.get('method') == 'channelMessage':
                 ch = msg['params']['channel']
-                self._handle_channel_message(ch, msg)
+                self.__ch_cb_map[ch](msg)
             else:
                 self.log.debug(f'recv: {msg}')
-                id_ = msg.get('id')
-                if id_:
-                    req = self.__request_table[id_]
+                if 'id' in msg:
+                    smsg, cb, desc = self.__request_table[msg['id']]
+                    req = desc or smsg
                     if 'result' in msg:
-                        res = msg.get('result')
+                        res = msg['result']
                         self.log.info(f'{req} => {res}')
-
-                        if id_ == self.__auth_id:
-                            self.is_auth = True
                     elif 'error' in msg:
                         err = msg['error']
                         code, message = err.get('code'), err.get('message')
                         self.log.error(f'{req} => {code}, {message}')
 
-                        if id_ == self.__auth_id:
-                            self.is_auth = False
-
+                    if cb:
+                        cb(msg)
+                else:
+                    self.log.warn(f'Unknown message {msg}')
         except Exception:
             self.log.debug(traceback.format_exc())

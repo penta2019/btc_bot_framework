@@ -12,7 +12,7 @@ class BitmexOrderbook(OrderbookBase):
     def __after_open(self):
         self.init()
         ch = f'orderBookL2_25:{self.symbol}'
-        self.ws.subscribe(ch, self.__on_message, 'orderBookL2_25')
+        self.ws.subscribe(ch, self.__on_message)
 
     def __on_message(self, msg):
         action, data = msg['action'], msg['data']

@@ -12,7 +12,7 @@ class BitmexTrade(TradeBase):
 
     def __after_open(self):
         ch = f'trade:{self.symbol}'
-        self.ws.subscribe(ch, self.__on_message, 'trade')
+        self.ws.subscribe(ch, self.__on_message)
 
     def __on_message(self, msg):
         if msg['action'] == 'insert':
