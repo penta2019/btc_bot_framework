@@ -28,9 +28,12 @@ class BitmexWebsocket(WebsocketBase):
         return id_
 
     def subscribe(self, ch, cb):
+        table = ch.split(':')[0]
+        if table in self.__ch_cb_map:
+            raise Exception(f'channel "{table}" is already subscribed')
+
         self.command('subscribe', [ch])
-        ch = ch.split(':')[0]
-        self.__ch_cb_map[ch] = cb
+        self.__ch_cb_map[table] = cb
 
     def authenticate(self, key, secret):
         def on_auth_message(msg):
