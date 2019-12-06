@@ -195,10 +195,14 @@ class OrderGroupBase:
 
     def remove_closed_orders(self, retention=0):
         now = time.time()
+        rm_id = []
         for id_, o in self.orders.items():
             if o.state in [CLOSED, CANCELED]:
-                if o.state_ts - now > retention:
-                    del self.orders[id_]
+                if now - o.state_ts > retention:
+                    rm_id.append(id_)
+
+        for id_ in rm_id:
+            del self.orders[id_]
 
     def _handle_event(self, e):
         assert False

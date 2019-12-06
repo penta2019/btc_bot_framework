@@ -152,7 +152,7 @@ class BitflyerOrderGroup(OrderGroupBase):
         if e.event_type != EVENT_EXECUTION:
             return
 
-        size = e.size * (1 if e.side == BUY else -1)
+        size = e.size * (1 if e.side.lower() == BUY else -1)
         self.position_group.update(e.price, size, e.commission, e.sfd)
 
 
