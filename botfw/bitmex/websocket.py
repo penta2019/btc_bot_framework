@@ -22,32 +22,26 @@ class BitmexWebsocket(WebsocketBase):
     def command(self, op, args=[], cb=None, description=None):
         msg = {"op": op, "args": args}
         self.send(msg)
-
         id_ = json.dumps(msg)
         self.__request_table[id_] = (msg, cb, description)
         return id_
 
     def subscribe(self, ch, cb):
-        table = ch.split(':')[0]
-        if table in self.__ch_cb_map:
-            raise Exception(f'channel "{table}" is already subscribed')
+        key = ch.split(':')[0]
+        if key in self.__ch_cb_map:
+            raise Exception(f'channel "{key}" is already subscribed')
 
         self.command('subscribe', [ch])
-        self.__ch_cb_map[table] = cb
+        self.__ch_cb_map[key] = cb
 
     def authenticate(self, key, secret):
-        def on_auth_message(msg):
-            if 'success' in msg:
-                self._on_auth(True)
-            else:
-                self._on_auth(False)
-
         expires = int(time.time() * 1000)
         sign = hmac.new(
             self.__secret.encode(), f'GET/realtime{expires}'.encode(),
             hashlib.sha256).hexdigest()
         self.command(
-            'authKeyExpires', [self.__key, expires, sign], on_auth_message)
+            'authKeyExpires', [self.__key, expires, sign],
+            lambda msg: self._on_auth('success' in msg))
 
     def _on_open(self):
         self.__request_table = {}

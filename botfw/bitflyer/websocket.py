@@ -26,7 +26,6 @@ class BitflyerWebsocket(WebsocketBase):
         self.__next_id += 1
         msg = {'method': op, 'params': args, 'id': id_}
         self.send(msg)
-
         self.__request_table[id_] = (msg, cb, description)
         return id_
 
@@ -35,12 +34,6 @@ class BitflyerWebsocket(WebsocketBase):
         self.__ch_cb_map[ch] = cb
 
     def authenticate(self, key, secret):
-        def on_auth_message(msg):
-            if 'result' in msg:
-                self._on_auth(True)
-            else:
-                self._on_auth(False)
-
         now = int(time.time())
         nonce = secrets.token_hex(16)
         sign = hmac.new(self.__secret.encode(), (str(now) + nonce).encode(),
@@ -50,7 +43,7 @@ class BitflyerWebsocket(WebsocketBase):
             'timestamp': now,
             'nonce': nonce,
             'signature': sign
-        }, on_auth_message)
+        }, lambda msg: self._on_auth('result' in msg))
 
     def _on_open(self):
         self.__next_id = 1
