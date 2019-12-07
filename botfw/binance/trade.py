@@ -3,10 +3,10 @@ from .websocket import BinanceWebsocket
 
 
 class BinanceTrade(TradeBase):
-    def __init__(self, symbol, ws=None):
+    def __init__(self, symbol, ws=None, future=False):
         super().__init__()
         self.symbol = symbol
-        self.ws = ws or BinanceWebsocket()
+        self.ws = ws or BinanceWebsocket(future=future)
         self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):

@@ -3,11 +3,11 @@ from .websocket import BinanceWebsocket
 
 
 class BinanceOrderbook(OrderbookBase):
-    def __init__(self, symbol, ws=None):
+    def __init__(self, symbol, ws=None, future=False):
         super().__init__()
         self.symbol = symbol
         self.ch = f'{self.symbol}@depth'
-        self.ws = ws or BinanceWebsocket()
+        self.ws = ws or BinanceWebsocket(future=future)
         self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):

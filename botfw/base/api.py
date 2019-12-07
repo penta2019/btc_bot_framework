@@ -21,7 +21,9 @@ class ApiBase:
                              request['headers'], request['body'])
         finally:
             if self.log.level <= logging.DEBUG:
-                self.log.debug(f'request: {path} {api} {method} {params}')
+                self.log.debug(
+                    f'request: {path} {api} {method} '
+                    f'{params} {headers} {body}')
 
             if path in self.count:
                 self.count[path] += 1

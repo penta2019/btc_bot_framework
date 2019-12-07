@@ -12,6 +12,7 @@ class WebsocketBase:
     def __init__(self, url):
         self.log = logging.getLogger(self.__class__.__name__)
         self.url = url
+        self.ws = None
 
         self.is_open = False
         self.is_auth = None  # None: before auth, True: success, False: failed
@@ -60,27 +61,22 @@ class WebsocketBase:
         self.ws.send(json.dumps(msg))
         self.log.debug(f'send: {msg}')
 
-    def _on_auth(self, success):
+    def _set_auth_result(self, success):
         if success:
             self.log.info('authentication succeeded')
             self.is_open = True
-            for cb in self.__after_auth_cb:
-                try:
-                    cb()
-                except Exception:
-                    self.log.error(traceback.format_exc())
+            self.__run_callbacks(self.__after_auth_cb)
         else:
             self.log.info('authentication failed')
             self.is_open = True
 
+    def _on_init(self):
+        pass
+
     def _on_open(self):
         self.log.info('open websocket')
         self.is_open = True
-        for cb in self.__after_open_cb:
-            try:
-                cb()
-            except Exception:
-                self.log.error(traceback.format_exc())
+        self.__run_callbacks(self.__after_open_cb)
 
     def _on_close(self):
         self.is_open = False
@@ -94,6 +90,8 @@ class WebsocketBase:
         self.log.error(f'recv: {err}')
 
     def __worker(self):
+        self._on_init()
+        self.log.debug(f'create websocket: url={self.url}')
         self.ws = websocket.WebSocketApp(
             self.url,
             on_open=self._on_open,
@@ -101,3 +99,10 @@ class WebsocketBase:
             on_message=self._on_message,
             on_error=self._on_error)
         self.ws.run_forever()
+
+    def __run_callbacks(self, cbs):
+        for cb in cbs:
+            try:
+                cb()
+            except Exception:
+                self.log.error(traceback.format_exc())

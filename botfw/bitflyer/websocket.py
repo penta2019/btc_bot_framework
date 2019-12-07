@@ -43,7 +43,7 @@ class BitflyerWebsocket(WebsocketBase):
             'timestamp': now,
             'nonce': nonce,
             'signature': sign
-        }, lambda msg: self._on_auth('result' in msg))
+        }, lambda msg: self._set_auth_result('result' in msg))
 
     def _on_open(self):
         self.__next_id = 1

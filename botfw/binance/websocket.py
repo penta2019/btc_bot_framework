@@ -1,16 +1,16 @@
-# import time
 import json
-# import secrets
-# import hmac
-# import hashlib
 import traceback
 
 from ..base.websocket import WebsocketBase
 
 
 class BinanceWebsocket(WebsocketBase):
-    def __init__(self, key=None, secret=None):
-        super().__init__('wss://stream.binance.com:9443/ws')
+    SPOT_ENDPOINT = 'wss://stream.binance.com:9443/ws'
+    FUTURE_ENDPOINT = 'wss://fstream.binance.com/ws'
+
+    def __init__(self, key=None, secret=None, future=False):
+        endpoint = self.FUTURE_ENDPOINT if future else self.SPOT_ENDPOINT
+        super().__init__(endpoint)
         self.__key = key
         self.__secret = secret
         self.__next_id = 1

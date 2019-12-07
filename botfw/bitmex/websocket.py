@@ -41,7 +41,7 @@ class BitmexWebsocket(WebsocketBase):
             hashlib.sha256).hexdigest()
         self.command(
             'authKeyExpires', [self.__key, expires, sign],
-            lambda msg: self._on_auth('success' in msg))
+            lambda msg: self._set_auth_result('success' in msg))
 
     def _on_open(self):
         self.__request_table = {}
