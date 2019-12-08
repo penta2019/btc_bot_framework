@@ -62,9 +62,9 @@ class OrderManagerBase:
         self.retention = retention  # retantion time of closed(canceled) order
         self.orders = {}  # {id: Order}
 
-        self._old_orders = collections.deque()
-        self._event_queue = collections.deque()
-        self._count_lock = 0
+        self.__old_orders = collections.deque()
+        self.__event_queue = collections.deque()
+        self.__count_lock = 0
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
@@ -74,7 +74,7 @@ class OrderManagerBase:
 
     def create_order_internal(self, o):
         try:
-            self._count_lock += 1
+            self.__count_lock += 1
 
             res = self.api.create_order(
                 o.symbol, o.type, o.side, o.amount, o.price)
@@ -82,7 +82,7 @@ class OrderManagerBase:
             o.state, o.state_ts = WAIT_OPEN, time.time()
             self.orders[o.id] = o
         finally:
-            self._count_lock -= 1
+            self.__count_lock -= 1
 
         return o
 
@@ -91,16 +91,53 @@ class OrderManagerBase:
         o.state = WAIT_CANCEL
         o.state_ts = time.time()
 
-    def _init(self):
-        self.orders = {}
-        self._old_orders = collections.deque()
-        self._event_queue = collections.deque()
+    def _handle_order_event(self, e):
+        o = self.orders.get(self._get_order_id(e))
+        if o:
+            self.__update_order2(o, e)
+        else:
+            # if event comes before create_order returns
+            # or order is not created by this class
+            self.__event_queue.append(e)
 
     def _after_auth(self):
         assert False
 
-    def _handle_events(self):
+    def _get_order_id(self, e):
         assert False
+
+    def _update_order(self, o, e):
+        assert False
+
+    def _create_external_order(self, e):
+        assert False
+
+    def __update_order2(self, o, e):
+        self._update_order(o, e)
+        if o.state in [CLOSED, CANCELED]:
+            self.__old_orders.append(o)
+        if o.event_cb:
+            o.event_cb(e)
+
+    def __process_queued_order_event(self):
+        if self.__count_lock:
+            return
+
+        while self.__event_queue:
+            e = self.__event_queue.popleft()
+            i = self._get_order_id(e)
+            o = self.orders.get(i)
+            if not o:  # if order is not created by this class
+                o = self._create_external_order(e)
+                if not o:  # failed to external create order
+                    continue
+                o.id = self._get_order_id(e)
+                o.external = True
+                o.state, o.state_ts = WAIT_OPEN, time.time()
+                self.orders[i] = o
+            self._update_order(o, e)
+            if o.event_cb:
+                o.event_cb(e)
 
     def __cancel_external_orders(self):
         for o in self.orders.values():
@@ -110,16 +147,16 @@ class OrderManagerBase:
                 self.cancel_order(o)
 
     def __remove_old_order(self):
-        while self._old_orders:
-            o = self._old_orders[0]
+        while self.__old_orders:
+            o = self.__old_orders[0]
             if time.time() - o.state_ts > self.retention:
-                self._old_orders.popleft()
+                self.__old_orders.popleft()
                 self.orders.pop(o.id, None)
             else:
                 break
 
     def __worker(self):
-        self._handle_events()
+        self.__process_queued_order_event()
         self.__remove_old_order()
         if not self.external:
             self.__cancel_external_orders()
