@@ -30,9 +30,8 @@ def run_forever(cb, log, sleep, exception_sleep=5):
             cb()
         except StopRunForever:
             break
-        except Exception as e:
-            log.error(type(e).__name__ + ': ' + str(e)[:256])
-            log.debug(traceback.format_exc())
+        except Exception:
+            log.error(traceback.format_exc())
             time.sleep(exception_sleep)
         time.sleep(sleep)
 

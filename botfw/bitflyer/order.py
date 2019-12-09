@@ -57,21 +57,17 @@ class BitflyerOrderManager(OrderManagerBase):
             o.child_order_id = e.child_order_id
             if o.state == WAIT_OPEN:
                 o.state, o.state_ts = OPEN, now
-        elif t == 'ORDER_FAILED':
-            o.state, o.state_ts = CANCELED, now
-            o.close_ts = ts
-            self.log.warn(f'order failed: {id_} {e.reason}')
-        elif t == 'CANCEL':
-            o.state, o.state_ts = CANCELED, now
-            o.close_ts = ts
         elif t == 'CANCEL_FAILED':
             if o.state == WAIT_CANCEL:
                 o.state, o.state_ts = OPEN, now
             self.log.warn(f'cancel failed: {id_}')
-        elif t == 'EXPIRE':
+        elif t in ['CANCEL', 'ORDER_FAILED', 'EXPIRE']:
             o.state, o.state_ts = CANCELED, now
             o.close_ts = ts
-            self.log.warn(f'order expired: {id_})')
+            if t == 'ORDER_FAILED':
+                self.log.warn(f'order failed: {id_} {e.reason}')
+            elif t == 'EXPIRE':
+                self.log.warn(f'order expired: {id_})')
         else:
             self.log.error(f'unknown event_type: {t}\n {id_}')
 
@@ -95,7 +91,7 @@ class BitflyerPositionGroup(PositionGroupBase):
     def __init__(self):
         super().__init__()
         self.sfd = 0  # total sfd
-        self.commission = 0  # total commissions in jpy
+        self.commission = 0  # total commissions in JPY
 
     def update(self, price, size, commission, sfd):
         super().update(price, size)
@@ -114,7 +110,7 @@ class BitflyerOrderGroup(OrderGroupBase):
         if e.event_type != 'EXECUTION':
             return
 
-        size = e.size * (1 if e.side.lower() == BUY else -1)
+        size = e.size if e.side.lower() == BUY else -e.size
         self.position_group.update(e.price, size, e.commission, e.sfd)
 
 

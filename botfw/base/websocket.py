@@ -65,7 +65,7 @@ class WebsocketBase:
         if success:
             self.log.info('authentication succeeded')
             self.is_open = True
-            self.__run_callbacks(self.__after_auth_cb)
+            self._run_callbacks(self.__after_auth_cb)
         else:
             self.log.info('authentication failed')
             self.is_open = True
@@ -76,7 +76,7 @@ class WebsocketBase:
     def _on_open(self):
         self.log.info('open websocket')
         self.is_open = True
-        self.__run_callbacks(self.__after_open_cb)
+        self._run_callbacks(self.__after_open_cb)
 
     def _on_close(self):
         self.is_open = False
@@ -89,6 +89,13 @@ class WebsocketBase:
     def _on_error(self, err):
         self.log.error(f'recv: {err}')
 
+    def _run_callbacks(self, cbs, *args):
+        for cb in cbs:
+            try:
+                cb(*args)
+            except Exception:
+                self.log.error(traceback.format_exc())
+
     def __worker(self):
         self._on_init()
         self.log.debug(f'create websocket: url={self.url}')
@@ -99,10 +106,3 @@ class WebsocketBase:
             on_message=self._on_message,
             on_error=self._on_error)
         self.ws.run_forever()
-
-    def __run_callbacks(self, cbs):
-        for cb in cbs:
-            try:
-                cb()
-            except Exception:
-                self.log.error(traceback.format_exc())

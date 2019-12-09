@@ -31,5 +31,4 @@ class BinanceWebsocketUserData(WebsocketBase):
 
     def _on_message(self, msg):
         msg = json.loads(msg)
-        for cb in self.__cb:
-            cb(msg)
+        self._run_callbacks(self.__cb, msg)

@@ -76,7 +76,7 @@ class BitmexPositionGroup(PositionGroupBase):
 
     def __init__(self):
         super().__init__()
-        self.commission = 0  # total commissions in jpy
+        self.commission = 0  # total commissions in USD
 
     def update(self, price, size, commission):
         super().update(price, size)
@@ -89,13 +89,11 @@ class BitmexOrderGroup(OrderGroupBase):
     PositionGroup = BitmexPositionGroup
 
     def _handle_event(self, e):
-        p = e.lastPx
-        s = e.lastQty
-        c = e.commission
-        if not p or not s:
+        p, s, c = e.lastPx, e.lastQty, e.commission
+        if not s:
             return
 
-        s *= (1 if e.side.lower() == BUY else -1)
+        s = s if e.side.lower() == BUY else -s
         self.position_group.update(p, s, c)
 
 
