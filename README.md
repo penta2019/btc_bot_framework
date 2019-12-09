@@ -81,6 +81,8 @@ trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照�
 * samples – 実行可能なサンプルプログラム
 * test – TODO
 
+![クラス構成](https://docs.google.com/drawings/d/e/2PACX-1vQ-_dnl_sqlpbMiK-RdnFiqHG1rWjP6kFax4v6OA9OkTGxKJn1kwFcKpmnjidZ6SDdw8qk4NiTMEOAp/pub?w=818&h=711)
+
 ## コーディングのスタイルとポリシー
 * 多少コードが冗長になる場合でも、基本的には設計上の正しさを優先します。
 * フレームワーク部分（botfw）については以下の規則を適用します。
