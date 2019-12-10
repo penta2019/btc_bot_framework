@@ -1,6 +1,9 @@
 import ccxt
 from ..base.api import ApiBase
 
+ccxt_bitmex = ccxt.bitmex()
+ccxt_bitmex.load_markets()
+
 
 class BitmexApi(ApiBase, ccxt.bitmex):
     def __init__(self, ccxt_config):

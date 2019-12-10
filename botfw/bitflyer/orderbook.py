@@ -2,16 +2,19 @@ from sortedcontainers import SortedDict
 
 from ..base.orderbook import OrderbookBase
 from .websocket import BitflyerWebsocket
+from .api import ccxt_bitflyer
 
 
 class BitflyerOrderbook(OrderbookBase):
     def __init__(self, symbol, ws=None):
         super().__init__()
         self.symbol = symbol
-        self.ch_snapshot = f'lightning_board_snapshot_{self.symbol}'
-        self.ch_update = f'lightning_board_{self.symbol}'
         self.ws = ws or BitflyerWebsocket()
         self.ws.add_after_open_callback(self.__after_open)
+
+        market_id = ccxt_bitflyer.market_id(symbol)
+        self.ch_snapshot = f'lightning_board_snapshot_{market_id}'
+        self.ch_update = f'lightning_board_{market_id}'
 
     def __after_open(self):
         self.init()

@@ -1,6 +1,9 @@
 import ccxt
 from ..base.api import ApiBase
 
+ccxt_bitflyer = ccxt.bitflyer()
+ccxt_bitflyer.load_markets()
+
 
 class BitflyerApi(ApiBase, ccxt.bitflyer):
     def __init__(self, ccxt_config):

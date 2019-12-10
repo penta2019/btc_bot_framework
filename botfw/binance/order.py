@@ -9,6 +9,7 @@ from ..base.order import (
     PositionGroupBase
 )
 from .websocket_user_data import BinanceWebsocketUserData
+from .api import ccxt_binance
 
 # silence linter (imported but unused)
 _DUMMY = [
@@ -74,8 +75,9 @@ class BinanceOrderManager(OrderManagerBase):
 
     def _create_external_order(self, e):
         o = e.o
+        symbol = ccxt_binance.markets_by_id[o['s']]['symbol']
         return self.Order(
-            o['s'], o['o'].lower(), o['S'].lower(),
+            symbol, o['o'].lower(), o['S'].lower(),
             float(o['q']), float(o['p']))
 
     def __on_events(self, msg):

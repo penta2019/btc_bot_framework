@@ -8,6 +8,7 @@ from ..base.order import (
     OrderGroupManagerBase, OrderGroupBase,
     PositionGroupBase
 )
+from .api import ccxt_bitmex
 from ..etc.util import unix_time_from_ISO8601Z
 
 # silence linter (imported but unused)
@@ -17,9 +18,6 @@ _DUMMY = [
     OPEN, CLOSED, CLOSED, CANCELED,
     WAIT_OPEN, WAIT_CANCEL
 ]
-
-# Symbol
-XBT_USD = 'XBTUSD'
 
 
 class BitmexOrder(OrderBase):
@@ -58,8 +56,9 @@ class BitmexOrderManager(OrderManagerBase):
             o.filled = filled
 
     def _create_external_order(self, e):
+        symbol = ccxt_bitmex.markets_by_id[e.symbol]['symbol']
         return self.Order(
-            e.symbol, e.ordType.lower(), e.side.lower(), e.orderQty, e.price)
+            symbol, e.ordType.lower(), e.side.lower(), e.orderQty, e.price)
 
     def __on_events(self, msg):
         if msg['action'] != 'insert':

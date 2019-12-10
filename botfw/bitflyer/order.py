@@ -8,6 +8,7 @@ from ..base.order import (
     OrderGroupManagerBase, OrderGroupBase,
     PositionGroupBase
 )
+from .api import ccxt_bitflyer
 from ..etc.util import unix_time_from_ISO8601Z
 
 # silence linter (imported but unused)
@@ -17,13 +18,6 @@ _DUMMY = [
     OPEN, CLOSED, CLOSED, CANCELED,
     WAIT_OPEN, WAIT_CANCEL
 ]
-
-# Symbol
-FX_BTC_JPY = 'FX_BTC_JPY'
-BTC_JPY = 'BTC_JPY'
-ETH_JPY = 'ETH_JPY'
-# ETH_BTC = 'ETH_BTC'
-# BCH_BTC = 'BCH_BTC'
 
 
 class BitflyerOrder(OrderBase):
@@ -72,12 +66,13 @@ class BitflyerOrderManager(OrderManagerBase):
             self.log.error(f'unknown event_type: {t}\n {id_}')
 
     def _create_external_order(self, e):
-        if e.event_type == 'ORDER':
+        if e.event_type != 'ORDER':
             self.log.warn(f'event for unknown order: {e.__dict__}')
             return None
 
+        symbol = ccxt_bitflyer.markets_by_id[e.product_code]['symbol']
         return self.Order(
-            e.product_code, e.child_order_type.lower(),
+            symbol, e.child_order_type.lower(),
             e.side.lower(), e.size, e.price)
 
     def __on_events(self, msg):

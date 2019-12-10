@@ -7,7 +7,9 @@ import pprint
 from botfw.bitmex import *
 from botfw.etc.util import setup_logger, run_forever_nonblocking
 
-account = json.loads(open('bitmex/account_info.json').read())
+XBT_USD = 'BTC/USD'
+
+account = json.loads(open('account/bitmex.json').read())
 KEY = account['key']  # YOUR_API_KEY
 SECRET = account['secret']  # YOUR_API_SECRET
 

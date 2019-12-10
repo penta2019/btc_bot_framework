@@ -1,5 +1,6 @@
 from ..base.trade import TradeBase
 from .websocket import BinanceWebsocket
+from .api import ccxt_binance
 
 
 class BinanceTrade(TradeBase):
@@ -10,7 +11,8 @@ class BinanceTrade(TradeBase):
         self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
-        ch = f'{self.symbol}@trade'
+        market_id = ccxt_binance.market_id(self.symbol)
+        ch = f'{market_id.lower()}@trade'
         self.ws.subscribe(ch, self.__on_message)
 
     def __on_message(self, msg):

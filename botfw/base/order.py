@@ -102,15 +102,19 @@ class OrderManagerBase:
 
     def _after_auth(self):
         assert False
+        return 0
 
     def _get_order_id(self, e):
         assert False
+        return 0
 
     def _update_order(self, o, e):
         assert False
+        return 0
 
     def _create_external_order(self, e):
         assert False
+        return 0
 
     def __update_order2(self, o, e):
         self._update_order(o, e)

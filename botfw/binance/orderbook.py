@@ -1,18 +1,20 @@
 from ..base.orderbook import OrderbookBase
 from .websocket import BinanceWebsocket
+from .api import ccxt_binance
 
 
 class BinanceOrderbook(OrderbookBase):
     def __init__(self, symbol, ws=None, future=False):
         super().__init__()
         self.symbol = symbol
-        self.ch = f'{self.symbol}@depth'
         self.ws = ws or BinanceWebsocket(future=future)
         self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
         self.init()
-        self.ws.subscribe(self.ch, self.__on_message)
+        market_id = ccxt_binance.market_id(self.symbol)
+        ch = f'{market_id.lower()}@depth'
+        self.ws.subscribe(ch, self.__on_message)
 
     def __on_message(self, msg):
         self.__update(self.sd_bids, msg['b'], -1)

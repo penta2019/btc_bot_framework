@@ -7,7 +7,10 @@ import pprint
 from botfw.bitflyer import *
 from botfw.etc.util import setup_logger, run_forever_nonblocking
 
-account = json.loads(open('bitflyer/account_info.json').read())
+FX_BTC_JPY = 'FX_BTC_JPY'
+BTC_JPY = 'BTC/JPY'
+
+account = json.loads(open('account/bitflyer.json').read())
 KEY = account['key']  # YOUR_API_KEY
 SECRET = account['secret']  # YOUR_API_SECRET
 

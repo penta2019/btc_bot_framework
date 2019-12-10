@@ -16,9 +16,11 @@ class ApiBase:
     def request(self, path, api='public', method='GET', params={},
                 headers=None, body=None):
         try:
-            request = self.sign(path, api, method, params, headers, body)
-            res = self.fetch(request['url'], request['method'],
-                             request['headers'], request['body'])
+            request = getattr(self, 'sign')(
+                path, api, method, params, headers, body)
+            res = getattr(self, 'fetch')(
+                request['url'], request['method'],
+                request['headers'], request['body'])
         finally:
             if self.log.level <= logging.DEBUG:
                 self.log.debug(
@@ -33,10 +35,6 @@ class ApiBase:
             self.capacity -= 1
 
         return res
-
-    def market_id(self, symbol):
-        # ignore ccxt symbol, and use exchange spesific symbol
-        return symbol
 
     def __worker(self):
         if self.capacity < self.MAX_API_CAPACITY:

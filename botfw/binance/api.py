@@ -1,6 +1,9 @@
 import ccxt
 from ..base.api import ApiBase
 
+ccxt_binance = ccxt.binance()
+ccxt_binance.load_markets()
+
 
 class BinanceApi(ApiBase, ccxt.binance):
     def __init__(self, ccxt_config):
