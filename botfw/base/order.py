@@ -68,8 +68,8 @@ class OrderManagerBase:
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
-    def create_order(self, symbol, type_, side, amount, price=0):
-        o = self.Order(symbol, type_, side, amount, price)
+    def create_order(self, symbol, type_, side, amount, price=0, params={}):
+        o = self.Order(symbol, type_, side, amount, price, params)
         return self.create_order_internal(o)
 
     def create_order_internal(self, o):
