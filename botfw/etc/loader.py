@@ -8,7 +8,6 @@ from .util import run_forever_nonblocking, StopRunForever
 
 class Loadable:
     def __init__(self, sleep=0, exception_sleep=5):
-        super().__init__()
         self.log = logging.getLogger(self.__class__.__name__)
         self.__stop = False
         run_forever_nonblocking(
@@ -37,10 +36,7 @@ class DynamicClassLoader:
 
     def add_args(self, dict_args):
         '''Add arguments passed to loaded class'''
-        if type(dict_args) is not dict:
-            dict_args = dict(dict_args)
-        else:
-            self.class_args.update(dict_args)
+        self.class_args.update(dict_args)
 
     def load(self, class_name, module_name):
         '''
@@ -53,7 +49,6 @@ class DynamicClassLoader:
         sys.modules.pop(module_name, None)
         module = importlib.import_module(module_name)
         instance = getattr(module, class_name)(self.class_args)
-        instance.start()
         self.classes[class_name] = {
             'module_name': module_name,
             'instance': instance,

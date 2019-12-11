@@ -15,7 +15,7 @@ from ..etc.util import unix_time_from_ISO8601Z
 _DUMMY = [
     BUY, SELL,
     LIMIT, MARKET,
-    OPEN, CLOSED, CLOSED, CANCELED,
+    OPEN, CLOSED, CANCELED,
     WAIT_OPEN, WAIT_CANCEL
 ]
 

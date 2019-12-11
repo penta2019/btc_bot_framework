@@ -15,7 +15,7 @@ from .api import ccxt_binance
 _DUMMY = [
     BUY, SELL,
     LIMIT, MARKET,
-    OPEN, CLOSED, CLOSED, CANCELED,
+    OPEN, CLOSED, CANCELED,
     WAIT_OPEN, WAIT_CANCEL
 ]
 

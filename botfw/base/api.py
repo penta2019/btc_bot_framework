@@ -16,9 +16,9 @@ class ApiBase:
     def request(self, path, api='public', method='GET', params={},
                 headers=None, body=None):
         try:
-            request = getattr(self, 'sign')(
+            request = self.sign(
                 path, api, method, params, headers, body)
-            res = getattr(self, 'fetch')(
+            res = self.fetch(
                 request['url'], request['method'],
                 request['headers'], request['body'])
         finally:
@@ -39,3 +39,7 @@ class ApiBase:
     def __worker(self):
         if self.capacity < self.MAX_API_CAPACITY:
             self.capacity += self.API_PER_SECOND
+
+    if False:  # ccxt.base.Exchange
+        def sign(self, *args): return {}
+        def fetch(self, *args): return {}

@@ -43,9 +43,6 @@ class WebsocketBase:
             time.sleep(0.1)
 
     def wait_auth(self, timeout=10):
-        if not self.is_auth_enabled:
-            raise Exception('Auth is not enabled')
-
         ts = time.time()
         while True:
             if self.is_auth is None:
