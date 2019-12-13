@@ -22,7 +22,6 @@ class Loadable(threading.Thread):
         self.log = logging.getLogger(self.__class__.__name__)
         self._sleep = sleep
         self._exception_sleep = exception_sleep
-        self._event = threading.Event()
         self.__stop = False
 
     def main(self):  # to be overrided
@@ -47,8 +46,7 @@ class Loadable(threading.Thread):
             if self.__stop:
                 break
 
-            self._event.clear()
-            self._event.wait(self._sleep)
+            time.sleep(self._sleep)
 
 
 class ClassInfo:
