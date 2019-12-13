@@ -63,13 +63,13 @@ class DynamicThreadClassLoader:
         self.loaded_classes = {}  # {'class_name': ClassInfo}
         self.init_args = {}
 
-    def add_args(self, dict_args):
+    def set_args(self, init_args):
         '''Add arguments passed to loaded class'''
-        self.init_args.update(dict_args)
+        self.init_args = init_args
 
-    def load(self, module_name, class_name):
+    def start(self, module_name, class_name):
         '''
-        Import {module_name} and launch {class_name}
+        Import {module_name} and start {class_name}
         which inherits "Loadable" class
         '''
         if class_name in self.loaded_classes:
@@ -84,15 +84,21 @@ class DynamicThreadClassLoader:
 
         return True
 
-    def unload(self, class_name):
+    def stop(self, class_name):
         '''Stop {class_name} which is loaded by "load()"'''
         if class_name not in self.loaded_classes:
             raise Exception(f'"{class_name}" not found')
 
         ci = self.loaded_classes[class_name]
         instance = ci.instance
-        instance.stop()
-        instance.join(5)
+
+        if hasattr(instance, 'stop'):
+            try:
+                instance.stop()
+                instance.join(3)
+            except Exception:
+                instance.log.error(traceback.format_exc())
+
         if instance.is_alive():
             self.log.warning(f'{class_name} is not responding. '
                              'Sending exception: StopThread')
@@ -102,12 +108,12 @@ class DynamicThreadClassLoader:
                 self.log.error(f'failed to stop "{class_name}"')
                 return False
 
-        try:
-            instance.on_stop()
-        except Exception:
-            instance.log.error(traceback.format_exc())
+        if hasattr(instance, 'on_stop'):
+            try:
+                instance.on_stop()
+            except Exception:
+                instance.log.error(traceback.format_exc())
 
-        del sys.modules[ci.module_name]
         del self.loaded_classes[class_name]
         self.log.info(f'stop "{class_name}"')
 

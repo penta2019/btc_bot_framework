@@ -1,7 +1,8 @@
 import time
 import logging
-import threading
 import collections
+import weakref
+import sys
 
 from ..etc.util import run_forever_nonblocking
 
@@ -216,12 +217,18 @@ class OrderGroupBase:
     Order = OrderBase
     PositionGroup = PositionGroupBase
 
-    def __init__(self, manager, name, symbol):
+    def __init__(self, manager, name, symbol, clean, retention):
+        self.log = logging.getLogger(
+            f'{self.__class__.__name__}({name}@{symbol})')
+        self.manager = manager
         self.name = name
         self.symbol = symbol
-        self.manager = manager
+        self.clean = clean
+        self.retention = retention
         self.position_group = self.PositionGroup()
         self.orders = {}
+
+        self.log.info('created')
 
     def create_order(self, type_, side, amount, price=0, params={}):
         o = self.Order(self.symbol, type_, side, amount, price, params)
@@ -248,6 +255,22 @@ class OrderGroupBase:
     def _handle_event(self, e):
         assert False
 
+    def __del__(self):
+        if not sys.meta_path:  # for cpython shutdown
+            return
+
+        if self.clean:
+            while self.orders:
+                for id_, o in self.orders.items():
+                    if o.state not in [CLOSED, CANCELED]:
+                        self.log.info(
+                            f'cancel remaining order: {id_}')
+                        self.cancel_order(o)
+                time.sleep(3)
+                self.remove_closed_orders()
+
+        self.log.info(f'deleted')
+
 
 class OrderGroupManagerBase:
     OrderGroup = OrderGroupBase
@@ -258,37 +281,23 @@ class OrderGroupManagerBase:
                  trades={}, position_sync_symbols=[]):
         self.log = logging.getLogger(self.__class__.__name__)
         self.order_manager = order_manager
-        self.order_groups = {}
+        self.order_groups = weakref.WeakValueDictionary()
         self.position_sync_symbols = position_sync_symbols  # TODO
         self.trades = trades  # {symbol:Trade}, used to update unrealized pnl
         self.retention = retention
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
-    def create_order_group(self, name, symbol):
+    def create_order_group(self, name, symbol, clean=True, retention=None):
         if name in self.order_groups:
             self.log.error('Failed to create order group. '
                            f'Order group "{name}" already exists.')
             return None
 
-        og = self.OrderGroup(self, name, symbol)
+        og = self.OrderGroup(
+            self, name, symbol, clean, retention or self.retention)
         self.order_groups[name] = og
         return og
-
-    def destroy_order_group(self, og, clean=True):
-        name = og.name
-        if name not in self.order_groups:
-            self.log.error('Failed to destroy order group. '
-                           f'Unknown order group "{name}". ')
-
-        og = self.order_groups.pop(name)
-        og.clean = clean  # whether to clean OrderGroup position
-
-        thread = threading.Thread(
-            name=f'clean_{og.name}', target=self._worker_destroy_order_group,
-            args=[og])
-        thread.daemon = True
-        thread.start()
 
     def get_total_positions(self):
         positions = {}
@@ -302,14 +311,10 @@ class OrderGroupManagerBase:
 
         return positions
 
-    def _worker_destroy_order_group(self, og):
-        assert False  # must be overrided
-
     def __worker(self):
         # remove closed orders older than retention time
-        if self.retention is not None:
-            for og in self.order_groups.values():
-                og.remove_closed_orders(self.retention)
+        for og in self.order_groups.values():
+            og.remove_closed_orders(og.retention)
 
         # update unrealized pnl if possible
         for og in self.order_groups.values():
