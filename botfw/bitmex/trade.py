@@ -25,5 +25,4 @@ class BitmexTrade(TradeBase):
                 if t['side'] == 'Sell':
                     size *= -1
                 self.ltp = price
-
                 self._trigger_callback(ts, price, size)
