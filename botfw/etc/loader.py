@@ -1,6 +1,5 @@
 import importlib
 import logging
-import sys
 import traceback
 import threading
 import time
@@ -50,16 +49,16 @@ class Loadable(threading.Thread):
 
 
 class ClassInfo:
-    def __init__(self, module_name, instance):
-        self.module_name = module_name
+    def __init__(self, module, instance):
+        self.module = module
         self.instance = instance
 
 
 class DynamicThreadClassLoader:
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
-        self.loaded_classes = {}  # {'class_name': ClassInfo}
         self.init_args = {}
+        self.classes = {}  # [ClassInfo]
 
     def set_args(self, init_args):
         '''Add arguments passed to loaded class'''
@@ -70,24 +69,29 @@ class DynamicThreadClassLoader:
         Import {module_name} and start {class_name}
         which inherits "Loadable" class
         '''
-        if class_name in self.loaded_classes:
-            raise Exception(f'"{class_name}" is already running.')
+        key = (module_name, class_name)
+        ci = self.classes.get(key)
+        if ci:
+            if ci.instance:
+                raise Exception(f'"{class_name}" is already running.')
+            else:
+                module = importlib.reload(ci.module)
+        else:
+            module = importlib.import_module(module_name)
 
-        sys.modules.pop(module_name, None)
-        module = importlib.import_module(module_name)
         instance = getattr(module, class_name)(self.init_args)
         instance.start()
-        self.loaded_classes[class_name] = ClassInfo(module_name, instance)
+        self.classes[key] = ClassInfo(module, instance)
         self.log.info(f'start "{class_name}"')
 
         return True
 
-    def stop(self, class_name):
+    def stop(self, module_name, class_name):
         '''Stop {class_name} which is loaded by "load()"'''
-        if class_name not in self.loaded_classes:
-            raise Exception(f'"{class_name}" not found')
-
-        ci = self.loaded_classes[class_name]
+        key = (module_name, class_name)
+        ci = self.classes.get(key)
+        if not ci or not ci.instance:
+            Exception(f'"{class_name} not found"')
         instance = ci.instance
 
         if hasattr(instance, 'stop'):
@@ -106,17 +110,18 @@ class DynamicThreadClassLoader:
                 self.log.error(f'failed to stop "{class_name}"')
                 return False
 
+        ci.instance = None
+
         if hasattr(instance, 'on_stop'):
             try:
                 instance.on_stop()
             except Exception:
                 instance.log.error(traceback.format_exc())
 
-        del self.loaded_classes[class_name]
         self.log.info(f'stop "{class_name}"')
 
         return True
 
     def show_loaded_classes(self):
         '''Show loaded class names'''
-        return ' '.join(self.loaded_classes.keys())
+        return ' '.join(self.classes.keys())
