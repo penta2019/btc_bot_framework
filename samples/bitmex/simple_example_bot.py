@@ -49,7 +49,7 @@ def main():
             try:
                 best_bid = orderbook.bids()[0]
                 best_ask = orderbook.asks()[0]
-            except BaseException:
+            except Exception:
                 print('initializing orderbook...')
                 continue
 
@@ -97,7 +97,7 @@ def main():
 
         except KeyboardInterrupt:
             break
-        except BaseException:
+        except Exception:
             log.error(traceback.format_exc())
 
 
