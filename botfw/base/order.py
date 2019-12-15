@@ -255,7 +255,6 @@ class OrderGroupBase:
 class OrderGroupManagerBase:
     OrderGroup = OrderGroupBase
     PositionGroup = PositionGroupBase
-    SYMBOLS = []
 
     def __init__(self, order_manager, retention=60,
                  trades={}, position_sync_symbols=[]):
@@ -297,18 +296,18 @@ class OrderGroupManagerBase:
 
     def get_total_positions(self):
         positions = {}
-        for s in self.SYMBOLS:
-            positions[s] = self.PositionGroup()
-
         for og in self.order_groups.values():
+            if og.symbol not in positions:
+                positions[og.symbol] = self.PositionGroup()
             p0, p = positions[og.symbol], og.position
-            for k in p:
-                p0[k] += p[k]
+            p0.position += p.position
+            p0.pnl += p.pnl
+            p0.unrealized_pnl += p.unrealized_pnl
 
         return positions
 
     def _worker_destroy_order_group(self, og):
-        while og.orders:
+        while og.orders:  # cancel all order
             for id_, o in og.orders:
                 if o not in [CLOSED, CANCELED]:
                     og.cancel_order(o)
