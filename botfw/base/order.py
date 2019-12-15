@@ -213,7 +213,6 @@ class PositionGroupBase(dict):
 
 
 class OrderGroupBase:
-    Order = OrderBase
     PositionGroup = PositionGroupBase
 
     def __init__(self, manager, name, symbol, retention):
@@ -227,10 +226,11 @@ class OrderGroupBase:
         self.orders = {}
 
     def create_order(self, type_, side, amount, price=0, params={}):
-        o = self.Order(self.symbol, type_, side, amount, price, params)
+        om = self.manager.order_manager
+        o = om.Order(self.symbol, type_, side, amount, price, params)
         o.event_cb = self._handle_event
         o.group_name = self.name
-        o = self.manager.order_manager.create_order_internal(o)
+        o = om.create_order_internal(o)
         self.orders[o.id] = o
         return o
 
@@ -254,7 +254,6 @@ class OrderGroupBase:
 
 class OrderGroupManagerBase:
     OrderGroup = OrderGroupBase
-    PositionGroup = PositionGroupBase
 
     def __init__(self, order_manager, retention=60,
                  trades={}, position_sync_symbols=[]):
@@ -298,7 +297,7 @@ class OrderGroupManagerBase:
         positions = {}
         for og in self.order_groups.values():
             if og.symbol not in positions:
-                positions[og.symbol] = self.PositionGroup()
+                positions[og.symbol] = og.PositionGroup()
             p0, p = positions[og.symbol], og.position
             p0.position += p.position
             p0.pnl += p.pnl

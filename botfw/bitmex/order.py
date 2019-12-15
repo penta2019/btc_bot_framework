@@ -84,7 +84,6 @@ class BitmexPositionGroup(PositionGroupBase):
 
 
 class BitmexOrderGroup(OrderGroupBase):
-    Order = BitmexOrder
     PositionGroup = BitmexPositionGroup
 
     def _handle_event(self, e):
@@ -98,7 +97,6 @@ class BitmexOrderGroup(OrderGroupBase):
 
 class BitmexOrderGroupManager(OrderGroupManagerBase):
     OrderGroup = BitmexOrderGroup
-    PositionGroup = BitmexPositionGroup
 
 
 class BitmexOrderEvent:

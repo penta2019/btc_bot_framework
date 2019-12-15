@@ -108,7 +108,6 @@ class BinancePositionGroup(PositionGroupBase):
 
 
 class BinanceOrderGroup(OrderGroupBase):
-    Order = BinanceOrder
     PositionGroup = BinancePositionGroup
 
     def _handle_event(self, e):
@@ -123,7 +122,6 @@ class BinanceOrderGroup(OrderGroupBase):
 
 class BinanceOrderGroupManager(OrderGroupManagerBase):
     OrderGroup = BinanceOrderGroup
-    PositionGroup = BinancePositionGroup
 
 
 class BinanceOrderEvent:

@@ -98,7 +98,6 @@ class BitflyerPositionGroup(PositionGroupBase):
 
 
 class BitflyerOrderGroup(OrderGroupBase):
-    Order = BitflyerOrder
     PositionGroup = BitflyerPositionGroup
 
     def _handle_event(self, e):
@@ -111,7 +110,6 @@ class BitflyerOrderGroup(OrderGroupBase):
 
 class BitflyerOrderGroupManager(OrderGroupManagerBase):
     OrderGroup = BitflyerOrderGroup
-    PositionGroup = BitflyerPositionGroup
 
 
 class BitflyerOrderEvent:
