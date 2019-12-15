@@ -278,14 +278,13 @@ class OrderGroupManagerBase:
         og.log.info('created')
         return og
 
-    def destroy_order_group(self, og, clean=True):
+    def destroy_order_group(self, og):
         name = og.name
         if name not in self.order_groups:
             self.log.error('Failed to destroy order group. '
                            f'Unknown order group "{name}". ')
 
         og = self.order_groups.pop(name)
-        og.clean = clean  # whether to clean OrderGroup position
 
         thread = threading.Thread(
             name=f'clean_{og.name}', target=self._worker_destroy_order_group,
