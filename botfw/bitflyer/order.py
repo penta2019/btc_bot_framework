@@ -9,7 +9,7 @@ from ..base.order import (
     PositionGroupBase
 )
 from .api import ccxt_bitflyer
-from ..etc.util import unix_time_from_ISO8601Z
+from ..etc.util import unix_time_from_ISO8601Z, decimal_sum
 
 # silence linter (imported but unused)
 _DUMMY = [
@@ -39,7 +39,7 @@ class BitflyerOrderManager(OrderManagerBase):
         ts = unix_time_from_ISO8601Z(e.event_date)
         now = time.time()
         if t == 'EXECUTION':
-            o.filled = round(o.filled + e.size, 8)
+            o.filled = decimal_sum(o.filled + e.size)
             if o.filled == o.amount:
                 o.state, o.state_ts = CLOSED, now
                 o.close_ts = ts
@@ -90,7 +90,7 @@ class BitflyerPositionGroup(PositionGroupBase):
 
     def update(self, price, size, commission, sfd):
         super().update(price, size)
-        self.position = round(self.position - commission, 8)
+        self.position = decimal_sum(self.position, -commission)
         c = price * commission
         self.commission += c
         self.sfd += sfd

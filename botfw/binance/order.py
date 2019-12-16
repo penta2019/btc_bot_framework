@@ -102,7 +102,6 @@ class BinancePositionGroup(PositionGroupBase):
 
     def update(self, price, size, commission):
         super().update(price, size)
-        self.position = round(self.position, 8)
         self.commission += commission
         self.pnl -= commission
 

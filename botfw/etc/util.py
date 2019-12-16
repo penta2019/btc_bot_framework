@@ -1,5 +1,6 @@
 import time
 import datetime
+import decimal
 import logging
 import threading
 import traceback
@@ -11,6 +12,10 @@ def unix_time_from_ISO8601Z(date):
     ts = td.timestamp()
     ts += float('0.' + date[20:-1])
     return ts
+
+
+def decimal_sum(*args):
+    return float(sum(map(lambda x: decimal.Decimal(str(x)), args)))
 
 
 def setup_logger(level=logging.INFO):

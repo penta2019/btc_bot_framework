@@ -3,7 +3,7 @@ import logging
 import collections
 import threading
 
-from ..etc.util import run_forever_nonblocking
+from ..etc.util import decimal_sum, run_forever_nonblocking
 
 
 # Order Side
@@ -180,7 +180,7 @@ class PositionGroupBase(dict):
     def update(self, price, size):
         avg0, pos0 = self.average_price, self.position
         avg1, pos1 = price, size
-        pos = pos0 + pos1
+        pos = decimal_sum(pos0, pos1)
 
         if pos == 0:
             avg = 1
@@ -298,7 +298,7 @@ class OrderGroupManagerBase:
             if og.symbol not in positions:
                 positions[og.symbol] = og.PositionGroup()
             p0, p = positions[og.symbol], og.position
-            p0.position += p.position
+            p0.position = decimal_sum(p0.position + p.position)
             p0.pnl += p.pnl
             p0.unrealized_pnl += p.unrealized_pnl
 
