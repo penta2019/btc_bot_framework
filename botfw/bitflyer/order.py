@@ -39,7 +39,7 @@ class BitflyerOrderManager(OrderManagerBase):
         ts = unix_time_from_ISO8601Z(e.event_date)
         now = time.time()
         if t == 'EXECUTION':
-            o.filled = decimal_sum(o.filled + e.size)
+            o.filled = decimal_sum(o.filled, e.size)
             if o.filled == o.amount:
                 o.state, o.state_ts = CLOSED, now
                 o.close_ts = ts
