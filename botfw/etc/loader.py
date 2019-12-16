@@ -91,7 +91,7 @@ class DynamicThreadClassLoader:
         key = (module_name, class_name)
         ci = self.classes.get(key)
         if not ci or not ci.instance:
-            Exception(f'"{class_name} not found"')
+            raise Exception(f'"{class_name} not found"')
         instance = ci.instance
 
         if hasattr(instance, 'stop'):
