@@ -2,6 +2,7 @@ import time
 import logging
 import collections
 import threading
+import traceback
 
 from ..etc.util import decimal_sum, run_forever_nonblocking
 
@@ -60,6 +61,7 @@ class OrderManagerBase:
         self.ws.add_after_auth_callback(self._after_auth)
         self.external = external  # True to allow external orders
         self.retention = retention  # retantion time of closed(canceled) order
+        self.last_update_ts = 0
         self.orders = {}  # {id: Order}
 
         self.__old_orders = collections.deque()
@@ -118,6 +120,7 @@ class OrderManagerBase:
 
     def __update_order2(self, o, e):
         self._update_order(o, e)
+        self.last_update_ts = time.time()
         if o.state in [CLOSED, CANCELED]:
             self.__old_orders.append(o)
         if o.event_cb:
@@ -176,6 +179,7 @@ class PositionGroupBase(dict):
         self.pnl = 0
         self.unrealized_pnl = 0
         self.average_price = 1
+        self.last_update_ts = 0
 
     def update(self, price, size):
         avg0, pos0 = self.average_price, self.position
@@ -203,6 +207,7 @@ class PositionGroupBase(dict):
         self.average_price = avg
         self.pnl += pnl
         self.update_unrealized_pnl(price)
+        self.last_update_ts = time.time()
 
     def update_unrealized_pnl(self, price):
         if self.SIZE_IN_FIAT:
@@ -215,13 +220,14 @@ class PositionGroupBase(dict):
 class OrderGroupBase:
     PositionGroup = PositionGroupBase
 
-    def __init__(self, manager, name, symbol, retention):
+    def __init__(self, manager, name, symbol, retention, order_log=False):
         self.log = logging.getLogger(
             f'{self.__class__.__name__}({name}@{symbol})')
         self.manager = manager
         self.name = name
         self.symbol = symbol
         self.retention = retention
+        self.order_log = order_log
         self.position_group = self.PositionGroup()
         self.orders = {}
 
@@ -232,10 +238,16 @@ class OrderGroupBase:
         o.group_name = self.name
         o = om.create_order_internal(o)
         self.orders[o.id] = o
+        if self.order_log:
+            self.log.info(
+                f'create order({o.id}): {type_} {side} {amount} {price} '
+                f'{params or ""}')
         return o
 
     def cancel_order(self, o):
         self.manager.order_manager.cancel_order(o)
+        if self.order_log:
+            self.log.info(f'cancel order({o.id})')
 
     def remove_closed_orders(self, retention=0):
         now = time.time()
@@ -255,25 +267,27 @@ class OrderGroupBase:
 class OrderGroupManagerBase:
     OrderGroup = OrderGroupBase
 
-    def __init__(self, order_manager, retention=60,
-                 trades={}, position_sync_symbols=[]):
+    def __init__(
+            self, order_manager, retention=60,
+            trades={}, position_sync_symbols=[]):
         self.log = logging.getLogger(self.__class__.__name__)
         self.order_manager = order_manager
         self.order_groups = {}
-        self.position_sync_symbols = position_sync_symbols  # TODO
+        self.position_sync_configs = {}
         self.trades = trades  # {symbol:Trade}, used to update unrealized pnl
         self.retention = retention
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
-    def create_order_group(self, name, symbol, retention=None):
+    def create_order_group(
+            self, name, symbol, retention=None, order_log=False):
         if name in self.order_groups:
             self.log.error('Failed to create order group. '
                            f'Order group "{name}" already exists.')
             return None
 
         og = self.OrderGroup(
-            self, name, symbol, retention or self.retention)
+            self, name, symbol, retention or self.retention, order_log)
         self.order_groups[name] = og
         og.log.info('created')
         return og
@@ -292,27 +306,75 @@ class OrderGroupManagerBase:
         thread.daemon = True
         thread.start()
 
-    def get_total_positions(self):
-        positions = {}
+    def get_total_position(self, symbol):
+        total = 0
         for og in self.order_groups.values():
-            if og.symbol not in positions:
-                positions[og.symbol] = og.PositionGroup()
-            p0, p = positions[og.symbol], og.position
-            p0.position = decimal_sum(p0.position + p.position)
-            p0.pnl += p.pnl
-            p0.unrealized_pnl += p.unrealized_pnl
+            if og.symbol == symbol:
+                total = decimal_sum(total + og.position_group.position)
+        return total
 
-        return positions
+    def get_last_update_timestamp(self, symbol):
+        ts = 0
+        for og in self.order_groups.values():
+            if og.symbol == symbol:
+                ts = max(ts, og.last_update_ts)
+        return ts
+
+    def set_position_sync_config(
+            self, symbol, position_func, min_lot, max_lot,
+            action_filter=None, check_interval=60, update_margin=1):
+        self.position_sync_configs[symbol] = PositionSyncConfig(
+            symbol, position_func, min_lot, max_lot,
+            action_filter, check_interval, update_margin)
 
     def _worker_destroy_order_group(self, og):
         while og.orders:  # cancel all order
-            for id_, o in og.orders:
+            for id_, o in og.orders.items():
                 if o not in [CLOSED, CANCELED]:
                     og.cancel_order(o)
                     og.log.info(f'cancel remaining order: {id_}')
             time.sleep(3)
             og.remove_closed_orders()
         og.log.info('deleted')
+
+    def __fix_postion_mismatch(self, conf):
+        self.log.warn(
+            'start to fix position mismatch. '
+            f'target_size={conf.position_diff}')
+
+        og = self.create_order_group('fix_position', conf.symbol, 0, True)
+        conf.is_position_sync_active = True
+        diff = conf.position_diff
+        min_lot = conf.min_lot
+        max_lot = conf.max_lot
+        pg = og.position_group
+
+        while pg.position != diff:
+            try:
+                if not og.orders:
+                    size = decimal_sum(diff, -pg.position)
+                    if size < -max_lot:
+                        size = -max_lot
+                    elif -min_lot < size < 0:
+                        size = min_lot
+                    elif 0 < size < min_lot:
+                        size = -min_lot
+                    elif max_lot < size:
+                        size = max_lot
+
+                    if size > 0:
+                        og.create_order(MARKET, BUY, size)
+                    else:
+                        og.create_order(MARKET, SELL, -size)
+
+                    time.sleep(3)
+                    og.remove_closed_orders()
+            except Exception:
+                og.log.error(traceback.format_exc())
+
+        self.destroy_order_group(og)
+        conf.is_position_sync_active = False
+        conf.position_diff = 0
 
     def __worker(self):
         # remove closed orders older than retention time
@@ -324,3 +386,68 @@ class OrderGroupManagerBase:
             t = self.trades.get(og.symbol)
             if t and t.ltp:
                 og.position_group.update_unrealized_pnl(t.ltp)
+
+        # check if positions between server and client correspond
+        now = time.time()
+        for conf in self.position_sync_configs.values():
+            if now - conf.last_check_ts < conf.check_interval:
+                continue
+
+            if conf.is_position_sync_active:
+                continue
+
+            ts0 = self.get_last_update_timestamp(conf.symbol)
+            if now - ts0 < conf.update_margin:
+                # last position update margin is not enought
+                continue
+
+            conf.last_check_ts = now
+            if conf.action_filter and not conf.action_filter():
+                # user wants to skip position check this time
+                continue
+
+            self.log.debug(f'position integrity check for {conf.symbol}')
+
+            # get server and client position
+            server = conf.position_func()
+            client = self.get_total_position(conf.symbol)
+
+            ts1 = self.get_last_update_timestamp(conf.symbol)
+            if ts0 != ts1:
+                # client position is updated during getting server position
+                continue
+
+            if server == client:
+                self.position_diff = 0
+                continue
+
+            diff = decimal_sum(client - server)
+            if diff == conf.position_diff:
+                # start thread to fix mismatch
+                thread = threading.Thread(
+                    name=f'fix_position@{conf.symbol}',
+                    target=self.__fix_postion_mismatch,
+                    args=[conf])
+                thread.daemon = True
+                thread.start()
+            else:
+                conf.position_diff = diff
+                self.log.warn(
+                    'detect position mismatch between '
+                    f'server({server}) and client({client}).')
+
+
+class PositionSyncConfig:
+    def __init__(
+            self, symbol, position_func, min_lot, max_lot,
+            action_filter, check_interval, update_margin):
+        self.symbol = symbol
+        self.position_func = position_func
+        self.min_lot = min_lot
+        self.max_lot = max_lot
+        self.action_filter = action_filter
+        self.check_interval = check_interval
+        self.update_margin = update_margin
+        self.last_check_ts = 0
+        self.position_diff = 0
+        self.is_position_sync_active = False

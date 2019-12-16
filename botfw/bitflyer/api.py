@@ -1,5 +1,6 @@
 import ccxt
 from ..base.api import ApiBase
+from ..etc.util import decimal_sum
 
 ccxt_bitflyer = ccxt.bitflyer()
 ccxt_bitflyer.load_markets()
@@ -29,3 +30,10 @@ class BitflyerApi(ApiBase, ccxt.bitflyer):
     def cancel_all_order(self, symbol):
         func = getattr(self, 'private_post_cancelallchildorders')
         return func({'product_code': symbol})
+
+    def get_total_position(self, symbol):
+        total = 0
+        for pos in self.fetch_positions(symbol):
+            size = -pos['size'] if pos['side'] == 'SELL' else pos['size']
+            total = decimal_sum(total, size)
+        return total
