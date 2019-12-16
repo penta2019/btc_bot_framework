@@ -11,6 +11,10 @@ def sum_str(*args):
     return sum(map(int, args))  # 引数はすべて文字列であることに注意
 
 
+def god(*args):
+    return eval(' '.join(args).replace(r'\s', ' '), globals())
+
+
 class Test:
     def __init__(self):
         self.data = []
@@ -36,10 +40,11 @@ cmd.register_command(sum_str)
 test_class = Test()
 cmd.register_command(test_class.add_data)   # ログを表示したくない場合は log=False
 cmd.register_command(test_class.show_data)  # 返信が必要ない場合は response=False
+cmd.register_command(god)  # あらゆる処理を実行できる神コマンド。主にデバッグ用
 
 input()  # 終了しないように入力待ちで待機
 
-# 動作テストにはnetcat(環境よってはnc)コマンドが便利です
+# 動作テストにはnetcat(環境よってはnc)コマンドが便利
 # $ netcat -u localhost 55555
 # help
 #     {略}
@@ -51,3 +56,7 @@ input()  # 終了しないように入力待ちで待機
 #     None
 # show_data
 #     [('a', 'b', 'c'), ('1', '2', '3')]
+# god cmd.__dict__
+#     {略}
+# god cmd.log.info('hello world')
+#     None

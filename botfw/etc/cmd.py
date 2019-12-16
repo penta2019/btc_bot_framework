@@ -28,7 +28,7 @@ class Cmd:
     def help(self):
         '''Show command list'''
         details = []
-        for name, (func, log, res) in self.__commands.items():
+        for name, (func, _log, _res) in self.__commands.items():
             # get cmd name and args
             spec = inspect.getargspec(func)
             args = ' '.join(spec.args[1:])
