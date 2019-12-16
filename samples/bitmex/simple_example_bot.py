@@ -24,7 +24,7 @@ orderbook = BitmexOrderbook(XBT_USD, ws)
 
 om = BitmexOrderManager(api, ws, retention=10)
 ogm = BitmexOrderGroupManager(om, trades={XBT_USD: trade}, retention=10)
-og = ogm.create_order_group('test1', XBT_USD)
+og = ogm.create_order_group(XBT_USD, 'test1')
 
 
 def callback(ts, price, size):

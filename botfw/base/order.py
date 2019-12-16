@@ -220,14 +220,14 @@ class PositionGroupBase(dict):
 class OrderGroupBase:
     PositionGroup = PositionGroupBase
 
-    def __init__(self, manager, name, symbol, retention, order_log=False):
+    def __init__(self, manager, symbol, name):
         self.log = logging.getLogger(
             f'{self.__class__.__name__}({name}@{symbol})')
         self.manager = manager
-        self.name = name
         self.symbol = symbol
-        self.retention = retention
-        self.order_log = order_log
+        self.name = name
+        self.retention = 60
+        self.order_log = None
         self.position_group = self.PositionGroup()
         self.orders = {}
 
@@ -239,15 +239,21 @@ class OrderGroupBase:
         o = om.create_order_internal(o)
         self.orders[o.id] = o
         if self.order_log:
-            self.log.info(
-                f'create order({o.id}): {type_} {side} {amount} {price} '
-                f'{params or ""}')
+            self.order_log.info(
+                f'create order: {self.symbol} {type_} {side} '
+                f'{amount} {price} {params} => {o.id}')
         return o
 
     def cancel_order(self, o):
         self.manager.order_manager.cancel_order(o)
         if self.order_log:
-            self.log.info(f'cancel order({o.id})')
+            self.order_log.info(f'cancel order: {o.id}')
+
+    def set_order_log(self, log):
+        self.order_log = log
+
+    def set_closed_order_retention(self, sec):
+        self.retention = sec
 
     def remove_closed_orders(self, retention=0):
         now = time.time()
@@ -267,9 +273,7 @@ class OrderGroupBase:
 class OrderGroupManagerBase:
     OrderGroup = OrderGroupBase
 
-    def __init__(
-            self, order_manager, retention=60,
-            trades={}, position_sync_symbols=[]):
+    def __init__(self, order_manager, retention=60, trades={}):
         self.log = logging.getLogger(self.__class__.__name__)
         self.order_manager = order_manager
         self.order_groups = {}
@@ -279,15 +283,14 @@ class OrderGroupManagerBase:
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
-    def create_order_group(
-            self, name, symbol, retention=None, order_log=False):
+    def create_order_group(self, symbol, name='NoName'):
         if name in self.order_groups:
             self.log.error('Failed to create order group. '
                            f'Order group "{name}" already exists.')
             return None
 
-        og = self.OrderGroup(
-            self, name, symbol, retention or self.retention, order_log)
+        og = self.OrderGroup(self, symbol, name)
+        og.set_closed_order_retention(self.retention)
         self.order_groups[name] = og
         og.log.info('created')
         return og
@@ -317,7 +320,7 @@ class OrderGroupManagerBase:
         ts = 0
         for og in self.order_groups.values():
             if og.symbol == symbol:
-                ts = max(ts, og.last_update_ts)
+                ts = max(ts, og.position_group.last_update_ts)
         return ts
 
     def set_position_sync_config(
@@ -339,10 +342,12 @@ class OrderGroupManagerBase:
 
     def __fix_postion_mismatch(self, conf):
         self.log.warn(
-            'start to fix position mismatch. '
+            f'start to fix position mismatch for {conf.symbol}. '
             f'target_size={conf.position_diff}')
 
-        og = self.create_order_group('fix_position', conf.symbol, 0, True)
+        og = self.create_order_group(conf.symbol, 'fix_position')
+        og.set_order_log(og.log)
+
         conf.is_position_sync_active = True
         diff = conf.position_diff
         min_lot = conf.min_lot
@@ -375,6 +380,7 @@ class OrderGroupManagerBase:
         self.destroy_order_group(og)
         conf.is_position_sync_active = False
         conf.position_diff = 0
+        self.log.warn(f'finish to fix position mismatch for {conf.symbol}.')
 
     def __worker(self):
         # remove closed orders older than retention time

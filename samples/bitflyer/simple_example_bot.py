@@ -28,9 +28,9 @@ fx_orderbook = BitflyerOrderbook(FX_BTC_JPY, ws)
 om = BitflyerOrderManager(api, ws, retention=10)
 ogm = BitflyerOrderGroupManager(
     om, trades={FX_BTC_JPY: fx_trade}, retention=10)
-fx_og = ogm.create_order_group('fx', FX_BTC_JPY)
-# fx2_og = ogm.create_order_group('fx2', FX_BTC_JPY)
-# btc_og = ogm.create_order_group('btc', BTC_JPY)
+fx_og = ogm.create_order_group(FX_BTC_JPY, 'fx')
+# fx2_og = ogm.create_order_group(FX_BTC_JPY, 'fx2')
+# btc_og = ogm.create_order_group(BTC_JPY, 'btc')
 
 
 def fx_callback(ts, price, size):
