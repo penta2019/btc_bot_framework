@@ -63,6 +63,6 @@ class BinanceWebsocket(WebsocketBase):
                         code, message = err.get('code'), err.get('message')
                         self.log.error(f'{req} => {code}, {message}')
                 else:
-                    self.log.warn(f'Unknown message {msg}')
+                    self.log.warning(f'Unknown message {msg}')
         except Exception:
             self.log.error(traceback.format_exc())

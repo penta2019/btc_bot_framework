@@ -149,7 +149,7 @@ class OrderManagerBase:
     def __cancel_external_orders(self):
         for o in self.orders.values():
             if o.external and o.state == OPEN:
-                self.log.warn(
+                self.log.warning(
                     f'cancel external order: {o.id}')
                 self.cancel_order(o)
 
@@ -341,7 +341,7 @@ class OrderGroupManagerBase:
         og.log.info('deleted')
 
     def __fix_postion_mismatch(self, conf):
-        self.log.warn(
+        self.log.warning(
             f'start to fix position mismatch for {conf.symbol}. '
             f'target_size={conf.position_diff}')
 
@@ -380,7 +380,7 @@ class OrderGroupManagerBase:
         self.destroy_order_group(og)
         conf.is_position_sync_active = False
         conf.position_diff = 0
-        self.log.warn(f'finish to fix position mismatch for {conf.symbol}.')
+        self.log.warning(f'finish to fix position mismatch for {conf.symbol}.')
 
     def __worker(self):
         # remove closed orders older than retention time
@@ -438,7 +438,7 @@ class OrderGroupManagerBase:
                 thread.start()
             else:
                 conf.position_diff = diff
-                self.log.warn(
+                self.log.warning(
                     'detect position mismatch between '
                     f'server({server}) and client({client}).')
 

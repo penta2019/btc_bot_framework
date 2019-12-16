@@ -92,7 +92,7 @@ class BinanceOrderManager(OrderManagerBase):
         elif type_ == 'ORDER_TRADE_UPDATE':
             self._handle_order_event(e)
         else:
-            self.log.warn(f'Unknown event type "{e}"')
+            self.log.warning(f'Unknown event type "{e}"')
 
 
 class BinancePositionGroup(PositionGroupBase):

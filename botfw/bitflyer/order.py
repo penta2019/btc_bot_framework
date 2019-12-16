@@ -45,7 +45,7 @@ class BitflyerOrderManager(OrderManagerBase):
                 o.close_ts = ts
             elif o.state != OPEN:
                 o.state, o.state_ts = OPEN, now
-                self.log.warn('something wrong with order state handling')
+                self.log.warning('something wrong with order state handling')
         elif t == 'ORDER':
             o.open_ts = ts
             o.child_order_id = e.child_order_id
@@ -54,20 +54,20 @@ class BitflyerOrderManager(OrderManagerBase):
         elif t == 'CANCEL_FAILED':
             if o.state == WAIT_CANCEL:
                 o.state, o.state_ts = OPEN, now
-            self.log.warn(f'cancel failed: {id_}')
+            self.log.warning(f'cancel failed: {id_}')
         elif t in ['CANCEL', 'ORDER_FAILED', 'EXPIRE']:
             o.state, o.state_ts = CANCELED, now
             o.close_ts = ts
             if t == 'ORDER_FAILED':
-                self.log.warn(f'order failed: {id_} {e.reason}')
+                self.log.warning(f'order failed: {id_} {e.reason}')
             elif t == 'EXPIRE':
-                self.log.warn(f'order expired: {id_})')
+                self.log.warning(f'order expired: {id_})')
         else:
             self.log.error(f'unknown event_type: {t}\n {id_}')
 
     def _create_external_order(self, e):
         if e.event_type != 'ORDER':
-            self.log.warn(f'event for unknown order: {e.__dict__}')
+            self.log.warning(f'event for unknown order: {e.__dict__}')
             return None
 
         symbol = ccxt_bitflyer.markets_by_id[e.product_code]['symbol']
