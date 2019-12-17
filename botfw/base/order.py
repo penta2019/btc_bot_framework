@@ -90,8 +90,9 @@ class OrderManagerBase:
 
     def cancel_order(self, o):
         self.api.cancel_order(o.id, o.symbol)
-        o.state = WAIT_CANCEL
-        o.state_ts = time.time()
+        if o.state in [OPEN, WAIT_OPEN]:
+            o.state = WAIT_CANCEL
+            o.state_ts = time.time()
 
     def _handle_order_event(self, e):
         o = self.orders.get(self._get_order_id(e))
