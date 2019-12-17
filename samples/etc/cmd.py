@@ -11,8 +11,14 @@ def sum_str(*args):
     return sum(map(int, args))  # 引数はすべて文字列であることに注意
 
 
-def god(*args):
-    return eval(' '.join(args).replace(r'\s', ' '), globals())
+class CmdNamespace:  # 組み込み関数のevalとexecを隠蔽するのを防ぐ用
+    @staticmethod
+    def eval(*args):
+        return eval(' '.join(args).replace(r'\s', ' '), globals())
+
+    @staticmethod
+    def exec(*args):
+        return exec(' '.join(args).replace(r'\s', ' '), globals())
 
 
 class Test:
@@ -35,7 +41,8 @@ cmd = Cmd(55555)  # '$ ss -upl' でポートが確かに開いてるか確認で
 
 # 外部から呼び出したい関数をCmdに追加
 cmd.register_command(sum_str)
-cmd.register_command(god)  # あらゆる処理を実行できる神コマンド。主にデバッグ用
+cmd.register_command(CmdNamespace.eval)  # あらゆる処理を実行できる神コマンド。主にデバッグ用
+cmd.register_command(CmdNamespace.exec)  # 返り値がNoneになる代わりに代入や複数文の実行が可能
 
 # クラスメソッドを登録する場合
 test_class = Test()
@@ -57,13 +64,13 @@ input()  # 終了しないように入力待ちで待機
 #     None
 # show_data
 #     [('a', 'b', 'c'), ('1', '2', '3')]
-# god cmd.__dict__
+# eval cmd.__dict__
 #     {略}
-# god cmd.log.info('hello world')
+# eval cmd.log.info('hello world')
 #     None
 
 # ipythonからCmdClientを利用する方法
 # $ ipython
 # : from botfw.etc.cmd import CmdClient
 # : c = CmdClient(55555)
-# : c.send("god cmd.log.info('hello world')")
+# : c.send("eval cmd.log.info('hello world')")
