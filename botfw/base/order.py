@@ -54,12 +54,11 @@ class OrderBase(dict):
 class OrderManagerBase:
     Order = OrderBase
 
-    def __init__(self, api, ws, external=True, retention=60):
+    def __init__(self, api, ws, retention=60):
         self.log = logging.getLogger(self.__class__.__name__)
         self.api = api  # Api object
         self.ws = ws  # Websocket class (with auth)
         self.ws.add_after_auth_callback(self._after_auth)
-        self.external = external  # True to allow external orders
         self.retention = retention  # retantion time of closed(canceled) order
         self.last_update_ts = 0
         self.orders = {}  # {id: Order}
@@ -95,6 +94,13 @@ class OrderManagerBase:
         if o.state in [OPEN, WAIT_OPEN]:
             o.state = WAIT_CANCEL
             o.state_ts = time.time()
+
+    def cancel_external_orders(self, symbol):
+        for o in self.orders.values():
+            if o.external and o.symbol == symbol and o.state == OPEN:
+                self.log.warning(
+                    f'cancel external order: {o.id}')
+                self.cancel_order(o)
 
     def _handle_order_event(self, e):
         o = self.orders.get(self._get_order_id(e))
@@ -150,13 +156,6 @@ class OrderManagerBase:
             if o.event_cb:
                 o.event_cb(e)
 
-    def __cancel_external_orders(self):
-        for o in self.orders.values():
-            if o.external and o.state == OPEN:
-                self.log.warning(
-                    f'cancel external order: {o.id}')
-                self.cancel_order(o)
-
     def __remove_closed_orders(self):
         while self.__closed_orders:
             o = self.__closed_orders[0]
@@ -200,9 +199,6 @@ class OrderManagerBase:
     def __worker(self):
         self.__process_queued_order_event()
         self.__remove_closed_orders()
-
-        if not self.external:
-            self.__cancel_external_orders()
 
         if self.__check_timer.is_interval():
             self.__check_open_orders()
@@ -441,6 +437,8 @@ class OrderGroupManagerBase:
         for conf in self.position_sync_configs.values():
             if now - conf.last_check_ts < conf.check_interval:
                 continue
+
+            self.order_manager.cancel_external_orders(conf.symbol)
 
             if conf.is_position_sync_active:
                 continue
