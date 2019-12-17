@@ -67,8 +67,8 @@ class OrderManagerBase:
         self.__closed_orders = collections.deque()
         self.__event_queue = collections.deque()
         self.__count_lock = 0
-        self.__check_open_orders_timer = Timer(60)
-        self.__symbol_info = {}
+        self.__check_timer = Timer(60)  # timer for check_open_orders
+        self.__last_check_tss = {}  # {symbol: last_check_open_orders_ts}
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
@@ -166,7 +166,33 @@ class OrderManagerBase:
                 break
 
     def __check_open_orders(self):
-        pass
+        now = time.time()
+        orders = []  # open orders whose state_ts is older than 60s
+        for o in self.orders.values():
+            if o.state not in [CLOSED, CANCELED] and now - o.state_ts > 60:
+                orders.append(o)
+
+        if not orders:
+            return
+
+        oldest_ts, symbol = now, None
+        for o in orders:
+            ts = self.__last_check_tss.get(o.symbol, 0)
+            if ts < oldest_ts:
+                oldest_ts, symbol = ts, o.symbol
+        self.__last_check_tss[symbol] = now
+
+        self.log.debug('check open orders')
+        open_orders = self.api.fetch_open_orders(symbol)
+        ids = [o['id'] for o in open_orders]
+        for o in orders:
+            if o.symbol != symbol:
+                continue
+
+            if o.id not in ids:
+                self.log.warning(
+                    f'order "{o.id}" is already closed or canceled.')
+                o.state, o.state_ts = CANCELED, now
 
     def __worker(self):
         self.__process_queued_order_event()
@@ -175,7 +201,7 @@ class OrderManagerBase:
         if not self.external:
             self.__cancel_external_orders()
 
-        if self.__check_open_orders_timer.is_interval():
+        if self.__check_timer.is_interval():
             self.__check_open_orders()
 
 
