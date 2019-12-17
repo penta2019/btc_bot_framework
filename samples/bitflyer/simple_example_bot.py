@@ -29,7 +29,8 @@ om = BitflyerOrderManager(api, ws, retention=10)
 ogm = BitflyerOrderGroupManager(
     om, trades={FX_BTC_JPY: fx_trade}, retention=10)
 # ポジションズレを自動で修復。
-# このオプションを利用する場合、裁量ポジ、外部ポジは利用できません（自動で決済される）
+# このオプションを利用する場合、外部のポジションは利用できません（自動で決済される）
+# また、外部からの注文は定期的にすべてキャンセルされます。
 ogm.set_position_sync_config(
     FX_BTC_JPY, lambda: api.get_total_position(FX_BTC_JPY), 0.01, 0.5)
 fx_og = ogm.create_order_group(FX_BTC_JPY, 'fx')
