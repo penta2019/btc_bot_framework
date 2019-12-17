@@ -107,19 +107,19 @@ class OrderManagerBase:
 
     def _after_auth(self):
         assert False
-        return 0
+        return self
 
     def _get_order_id(self, e):
         assert False
-        return 0
+        return self
 
     def _update_order(self, o, e):
         assert False
-        return 0
+        return self
 
     def _create_external_order(self, e):
         assert False
-        return 0
+        return self
 
     def __update_order2(self, o, e):
         self._update_order(o, e)
@@ -145,7 +145,7 @@ class OrderManagerBase:
                 o.external = True
                 o.state, o.state_ts = WAIT_OPEN, time.time()
                 self.orders[i] = o
-                self.log.warning('found external order: {o.id}')
+                self.log.debug(f'found external order: {o.id}')
             self._update_order(o, e)
             if o.event_cb:
                 o.event_cb(e)
@@ -305,6 +305,7 @@ class OrderGroupBase:
 
     def _handle_event(self, e):
         assert False
+        return self
 
 
 class OrderGroupManagerBase:

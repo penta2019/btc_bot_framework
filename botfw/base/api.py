@@ -41,5 +41,5 @@ class ApiBase:
             self.capacity += self.API_PER_SECOND
 
     if False:  # ccxt.base.Exchange
-        def sign(self, *args): return {}
-        def fetch(self, *args): return {}
+        def sign(self, *args): return self
+        def fetch(self, *args): return self
