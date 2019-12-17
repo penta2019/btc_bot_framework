@@ -60,3 +60,9 @@ input()  # 終了しないように入力待ちで待機
 #     {略}
 # god cmd.log.info('hello world')
 #     None
+
+# ipythonからCmdClientを利用する方法
+# $ ipython
+# : from botfw.etc.cmd import CmdClient
+# : c = CmdClient(55555)
+# : c.send("god cmd.log.info('hello world')")

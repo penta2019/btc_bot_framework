@@ -75,3 +75,20 @@ class Cmd:
             self.__sock.sendto(f'{result}\n'.encode(), addr)
         if log:
             self.log.info(f'recv {addr}: {msg} =>\n{result}')
+
+
+class CmdClient:
+    def __init__(self, port, print_result=True):
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.server = ('localhost', port)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.print_result = print_result
+        run_forever_nonblocking(self.__worker, self.log, 0)
+
+    def send(self, msg):
+        self.sock.sendto(msg.encode(), self.server)
+
+    def __worker(self):
+        msg, _ = self.sock.recvfrom(8192)
+        if self.print_result:
+            print(msg.decode())
