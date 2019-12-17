@@ -4,7 +4,7 @@ import collections
 import threading
 import traceback
 
-from ..etc.util import decimal_sum, run_forever_nonblocking
+from ..etc.util import decimal_sum, run_forever_nonblocking, Timer
 
 
 # Order Side
@@ -64,9 +64,11 @@ class OrderManagerBase:
         self.last_update_ts = 0
         self.orders = {}  # {id: Order}
 
-        self.__old_orders = collections.deque()
+        self.__closed_orders = collections.deque()
         self.__event_queue = collections.deque()
         self.__count_lock = 0
+        self.__check_open_orders_timer = Timer(60)
+        self.__symbol_info = {}
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
@@ -123,7 +125,7 @@ class OrderManagerBase:
         self._update_order(o, e)
         self.last_update_ts = time.time()
         if o.state in [CLOSED, CANCELED]:
-            self.__old_orders.append(o)
+            self.__closed_orders.append(o)
         if o.event_cb:
             o.event_cb(e)
 
@@ -154,20 +156,27 @@ class OrderManagerBase:
                     f'cancel external order: {o.id}')
                 self.cancel_order(o)
 
-    def __remove_old_order(self):
-        while self.__old_orders:
-            o = self.__old_orders[0]
+    def __remove_closed_orders(self):
+        while self.__closed_orders:
+            o = self.__closed_orders[0]
             if time.time() - o.state_ts > self.retention:
-                self.__old_orders.popleft()
+                self.__closed_orders.popleft()
                 self.orders.pop(o.id, None)
             else:
                 break
 
+    def __check_open_orders(self):
+        pass
+
     def __worker(self):
         self.__process_queued_order_event()
-        self.__remove_old_order()
+        self.__remove_closed_orders()
+
         if not self.external:
             self.__cancel_external_orders()
+
+        if self.__check_open_orders_timer.is_interval():
+            self.__check_open_orders()
 
 
 class PositionGroupBase(dict):
