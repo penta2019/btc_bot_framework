@@ -145,6 +145,7 @@ class OrderManagerBase:
                 o.external = True
                 o.state, o.state_ts = WAIT_OPEN, time.time()
                 self.orders[i] = o
+                self.log.warning('found external order: {o.id}')
             self._update_order(o, e)
             if o.event_cb:
                 o.event_cb(e)
@@ -182,7 +183,7 @@ class OrderManagerBase:
                 oldest_ts, symbol = ts, o.symbol
         self.__last_check_tss[symbol] = now
 
-        self.log.debug('check open orders')
+        self.log.debug(f'check if open orders for {symbol} are still alive')
         open_orders = self.api.fetch_open_orders(symbol)
         ids = [o['id'] for o in open_orders]
         for o in orders:
@@ -378,7 +379,7 @@ class OrderGroupManagerBase:
 
     def __fix_postion_mismatch(self, conf):
         self.log.warning(
-            f'start to fix position mismatch for {conf.symbol}. '
+            f'started to fix position mismatch for {conf.symbol}. '
             f'target_size={conf.position_diff}')
 
         og = self.create_order_group(conf.symbol, 'fix_position')
@@ -418,7 +419,8 @@ class OrderGroupManagerBase:
 
         self.destroy_order_group(og)
 
-        self.log.warning(f'finish to fix position mismatch for {conf.symbol}.')
+        self.log.warning(
+            f'finished to fix position mismatch for {conf.symbol}.')
 
     def __worker(self):
         # remove closed orders older than retention time
