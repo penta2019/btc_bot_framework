@@ -28,7 +28,12 @@ fx_orderbook = BitflyerOrderbook(FX_BTC_JPY, ws)
 om = BitflyerOrderManager(api, ws, retention=10)
 ogm = BitflyerOrderGroupManager(
     om, trades={FX_BTC_JPY: fx_trade}, retention=10)
+# ポジションズレを自動で修復。
+# このオプションを利用する場合、裁量ポジ、外部ポジは利用できません（自動で決済される）
+ogm.set_position_sync_config(
+    FX_BTC_JPY, lambda: api.get_total_position(FX_BTC_JPY), 0.01, 0.5)
 fx_og = ogm.create_order_group(FX_BTC_JPY, 'fx')
+fx_og.set_order_log(log)  # 自前で注文のログを表示する場合、ここは不要
 # fx2_og = ogm.create_order_group(FX_BTC_JPY, 'fx2')
 # btc_og = ogm.create_order_group(BTC_JPY, 'btc')
 
@@ -88,7 +93,6 @@ def main():
             def handle_old_order(o):
                 if o.state == OPEN:
                     fx_og.cancel_order(o)
-                    log.info(f'CANCEL: {o.id}')
                 if o.state == WAIT_CANCEL:
                     time.sleep(1)
                 if o.state in [CLOSED, CANCELED]:
@@ -105,13 +109,9 @@ def main():
             # if not buy_order and fx_pos <= 0:
             #     price = fx_best_bid[0] - 500
             #     buy_order = fx_og.create_order(LIMIT, BUY, 0.01, price)
-            #     id_ = buy_order.id
-            #     log.info(f'ORDER : {id_} FX_BTC_JPY LIMIT BUY 0.01 {price}')
             # if not sell_order and fx_pos >= 0:
             #     price = fx_best_ask[0] + 500
             #     sell_order = fx_og.create_order(LIMIT, SELL, 0.01, price)
-            #     id_ = sell_order.id
-            #     log.info(f'ORDER : {id_} FX_BTC_JPY LIMIT SELL 0.01 {price}')
 
         except KeyboardInterrupt:
             break

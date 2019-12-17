@@ -25,6 +25,7 @@ orderbook = BitmexOrderbook(XBT_USD, ws)
 om = BitmexOrderManager(api, ws, retention=10)
 ogm = BitmexOrderGroupManager(om, trades={XBT_USD: trade}, retention=10)
 og = ogm.create_order_group(XBT_USD, 'test1')
+og.set_order_log(log)  # 自前で注文のログを表示する場合、ここは不要
 
 
 def callback(ts, price, size):
@@ -87,13 +88,9 @@ def main():
             # if not buy_order and pos <= 0:
             #     price = best_bid[0]
             #     buy_order = og.create_order(LIMIT, BUY, 1, price)
-            #     id_ = buy_order.id
-            #     log.info(f'ORDER : {id_} XBT_USD Limit Buy 1 {price}')
             # if not sell_order and pos >= 0:
             #     price = best_ask[0]
             #     sell_order = og.create_order(LIMIT, SELL, 1, price)
-            #     id_ = sell_order.id
-            #     log.info(f'ORDER : {id_} XBT_USD Limit Sell 1 {price}')
 
         except KeyboardInterrupt:
             break
