@@ -377,9 +377,11 @@ class OrderGroupManagerBase:
             except Exception:
                 og.log.error(traceback.format_exc())
 
-        self.destroy_order_group(og)
         conf.is_position_sync_active = False
         conf.position_diff = 0
+
+        self.destroy_order_group(og)
+
         self.log.warning(f'finish to fix position mismatch for {conf.symbol}.')
 
     def __worker(self):

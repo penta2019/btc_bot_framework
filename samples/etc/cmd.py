@@ -35,12 +35,13 @@ cmd = Cmd(55555)  # '$ ss -upl' でポートが確かに開いてるか確認で
 
 # 外部から呼び出したい関数をCmdに追加
 cmd.register_command(sum_str)
+cmd.register_command(god)  # あらゆる処理を実行できる神コマンド。主にデバッグ用
 
 # クラスメソッドを登録する場合
 test_class = Test()
 cmd.register_command(test_class.add_data)   # ログを表示したくない場合は log=False
 cmd.register_command(test_class.show_data)  # 返信が必要ない場合は response=False
-cmd.register_command(god)  # あらゆる処理を実行できる神コマンド。主にデバッグ用
+
 
 input()  # 終了しないように入力待ちで待機
 

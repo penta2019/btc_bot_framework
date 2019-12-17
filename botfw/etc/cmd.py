@@ -48,7 +48,7 @@ class Cmd:
                 doc = '    no document'
 
             details.append(f'{name} {args}\n{doc}')
-        return 'usage: Command args...\n' + '\n'.join(details)
+        return 'usage: Command args...\n\n' + '\n\n'.join(details) + '\n'
 
     def __worker(self):
         try:
