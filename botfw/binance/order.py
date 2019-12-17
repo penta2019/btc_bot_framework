@@ -73,7 +73,7 @@ class BinanceOrderManager(OrderManagerBase):
             o.close_ts = ts
             o.state, o.state_ts = CLOSED, now
 
-    def _create_external_order(self, e):
+    def _generate_order_object(self, e):
         o = e.o
         symbol = ccxt_binance.markets_by_id[o['s']]['symbol']
         return self.Order(

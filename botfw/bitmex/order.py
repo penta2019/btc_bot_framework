@@ -55,7 +55,7 @@ class BitmexOrderManager(OrderManagerBase):
             o.trade_ts = ts
             o.filled = filled
 
-    def _create_external_order(self, e):
+    def _generate_order_object(self, e):
         symbol = ccxt_bitmex.markets_by_id[e.symbol]['symbol']
         return self.Order(
             symbol, e.ordType.lower(), e.side.lower(), e.orderQty, e.price)

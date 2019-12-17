@@ -65,7 +65,7 @@ class BitflyerOrderManager(OrderManagerBase):
         else:
             self.log.error(f'unknown event_type: {t}\n {id_}')
 
-    def _create_external_order(self, e):
+    def _generate_order_object(self, e):
         if e.event_type != 'ORDER':
             self.log.warning(f'event for unknown order: {e.__dict__}')
             return None

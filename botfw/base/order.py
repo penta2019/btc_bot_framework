@@ -123,7 +123,7 @@ class OrderManagerBase:
         assert False
         return self
 
-    def _create_external_order(self, e):
+    def _generate_order_object(self, e):
         assert False
         return self
 
@@ -144,7 +144,7 @@ class OrderManagerBase:
             i = self._get_order_id(e)
             o = self.orders.get(i)
             if not o:  # if order is not created by this class
-                o = self._create_external_order(e)
+                o = self._generate_order_object(e)
                 if not o:  # failed to external create order
                     continue
                 o.id = self._get_order_id(e)
