@@ -162,7 +162,8 @@ class OrderManagerBase:
             o = self.__closed_orders[0]
             if time.time() - o.state_ts > self.retention:
                 self.__closed_orders.popleft()
-                self.orders.pop(o.id, None)
+                if o.state in [CLOSED, CANCELED]:
+                    self.orders.pop(o.id, None)
             else:
                 break
 
@@ -194,6 +195,7 @@ class OrderManagerBase:
                 self.log.warning(
                     f'order "{o.id}" is already closed or canceled.')
                 o.state, o.state_ts = CANCELED, now
+                self.__closed_orders.append(o)
 
     def __worker(self):
         self.__process_queued_order_event()
