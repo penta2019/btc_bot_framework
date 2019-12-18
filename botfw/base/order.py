@@ -491,6 +491,7 @@ class OrderGroupManagerBase:
                     og.remove_closed_orders()
             except Exception:
                 og.log.error(traceback.format_exc())
+                time.sleep(10)
 
         conf.is_position_sync_active = False
         conf.position_diff = 0
