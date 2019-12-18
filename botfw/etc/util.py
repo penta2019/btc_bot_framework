@@ -15,6 +15,7 @@ def unix_time_from_ISO8601Z(date):
 
 
 def decimal_sum(*args):
+    assert len(args) > 1
     return float(sum(map(lambda x: decimal.Decimal(str(x)), args)))
 
 

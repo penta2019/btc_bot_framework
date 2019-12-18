@@ -366,7 +366,7 @@ class OrderGroupManagerBase:
         total = 0
         for og in self.order_groups.values():
             if og.symbol == symbol:
-                total = decimal_sum(total + og.position_group.position)
+                total = decimal_sum(total, og.position_group.position)
         return total
 
     def get_last_update_timestamp(self, symbol):
@@ -440,7 +440,7 @@ class OrderGroupManagerBase:
                 self.position_diff = 0
                 continue
 
-            diff = decimal_sum(client - server)
+            diff = decimal_sum(client, -server)
             if diff == conf.position_diff:
                 # start thread to fix mismatch
                 thread = threading.Thread(
