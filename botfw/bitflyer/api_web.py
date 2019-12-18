@@ -12,7 +12,7 @@ class BitflyerApiWithWebOrder(BitflyerApi):
     def __init__(self, ccxt_config, login_id, password, account_id,
                  device_id=None, device_token=None):
         super().__init__(ccxt_config)
-        self.api = BitFlyerWebAPI(
+        self.api = BitflyerWebApi(
             login_id, password, account_id, device_id, device_token)
         self.api.login()
 
@@ -50,7 +50,7 @@ class BitflyerApiWithWebOrder(BitflyerApi):
         return {'id': res['data']['order_ref_id']}
 
 
-class BitFlyerWebAPI:
+class BitflyerWebApi:
     def __init__(self, login_id, password, account_id,
                  device_id=None, device_token=None):
         self.login_id = login_id
