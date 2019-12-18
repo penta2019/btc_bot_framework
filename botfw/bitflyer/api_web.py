@@ -12,34 +12,39 @@ class BitflyerApiWithWebOrder(BitflyerApi):
     def __init__(self, ccxt_config, login_id, password, account_id,
                  device_id=None, device_token=None):
         super().__init__(ccxt_config)
+        self.load_markets()
         self.api = BitflyerWebApi(
             login_id, password, account_id, device_id, device_token)
         self.api.login()
 
     def create_order(self, symbol, type_, side, size, price=0, params={}):
-        res = self.api.send_order(
-            symbol, type_.upper(), side.upper(), size, price, **params)
-        # {'status': 0,
-        #  'error_message': None,
-        #  'data': {'order_ref_id': 'JRF20180509-220225-476540'}}
-        #
-        # 0: success
-        # -501: session expired
-        # -153: minimum size >= 0.01
-        # ...
+        try:
+            symbol = self.markets[symbol]['id']
+            type_ = type_.upper()
+            side = side.upper()
+            res = self.api.send_order(
+                symbol, type_, side, size, price, **params)
+            # {'status': 0,
+            #  'error_message': None,
+            #  'data': {'order_ref_id': 'JRF20180509-220225-476540'}}
+            #
+            # 0: success
+            # -501: session expired
+            # -153: minimum size >= 0.01
+            # ...
+        finally:
+            path = 'sendorder'
+            if path in self.count:
+                self.count[path] += 1
+            else:
+                self.count[path] = 1
 
-        if self.log.level <= logging.DEBUG:
-            self.log.debug(
-                f'request: sendorder '
-                f'{symbol} {type_} {side} {size} {price} {params}')
+            self.capacity -= 1
 
-        path = 'sendorder'
-        if path in self.count:
-            self.count[path] += 1
-        else:
-            self.count[path] = 1
-
-        self.capacity -= 1
+            if self.log.level <= logging.DEBUG:
+                self.log.debug(
+                    f'request: sendorder '
+                    f'{symbol} {type_} {side} {size} {price} {params}')
 
         st, err = res['status'], res['error_message']
         if st != 0:
