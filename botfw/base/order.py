@@ -393,62 +393,17 @@ class OrderGroupManagerBase:
             og.remove_closed_orders()
         og.log.info('deleted')
 
-    def __fix_postion_mismatch(self, conf):
-        self.log.warning(
-            f'started to fix position mismatch for {conf.symbol}. '
-            f'target_size={conf.position_diff}')
-
-        og = self.create_order_group(conf.symbol, 'fix_position')
-        og.set_order_log(og.log)
-
-        conf.is_position_sync_active = True
-        diff = conf.position_diff
-        min_lot = conf.min_lot
-        max_lot = conf.max_lot
-        pg = og.position_group
-
-        while pg.position != diff:
-            try:
-                if not og.orders:
-                    size = decimal_sum(diff, -pg.position)
-                    if size < -max_lot:
-                        size = -max_lot
-                    elif -min_lot < size < 0:
-                        size = min_lot
-                    elif 0 < size < min_lot:
-                        size = -min_lot
-                    elif max_lot < size:
-                        size = max_lot
-
-                    if size > 0:
-                        og.create_order(MARKET, BUY, size)
-                    else:
-                        og.create_order(MARKET, SELL, -size)
-
-                    time.sleep(3)
-                    og.remove_closed_orders()
-            except Exception:
-                og.log.error(traceback.format_exc())
-
-        conf.is_position_sync_active = False
-        conf.position_diff = 0
-
-        self.destroy_order_group(og)
-
-        self.log.warning(
-            f'finished to fix position mismatch for {conf.symbol}.')
-
-    def __worker(self):
-        # remove closed orders older than retention time
+    def __remove_closed_orders(self):
         for og in self.order_groups.values():
             og.remove_closed_orders(og.retention)
 
-        # update unrealized pnl if possible
+    def __update_unrealized_pnl(self):
         for og in self.order_groups.values():
             t = self.trades.get(og.symbol)
             if t and t.ltp:
                 og.position_group.update_unrealized_pnl(t.ltp)
 
+    def __check_position_integrity(self):
         # check if positions between server and client correspond
         now = time.time()
         for conf in self.position_sync_configs.values():
@@ -499,6 +454,56 @@ class OrderGroupManagerBase:
                 self.log.warning(
                     'detect position mismatch between '
                     f'server({server}) and client({client}).')
+
+    def __fix_postion_mismatch(self, conf):
+        self.log.warning(
+            f'started to fix position mismatch for {conf.symbol}. '
+            f'target_size={conf.position_diff}')
+
+        og = self.create_order_group(conf.symbol, 'fix_position')
+        og.set_order_log(og.log)
+
+        conf.is_position_sync_active = True
+        diff = conf.position_diff
+        min_lot = conf.min_lot
+        max_lot = conf.max_lot
+        pg = og.position_group
+
+        while pg.position != diff:
+            try:
+                if not og.orders:
+                    size = decimal_sum(diff, -pg.position)
+                    if size < -max_lot:
+                        size = -max_lot
+                    elif -min_lot < size < 0:
+                        size = min_lot
+                    elif 0 < size < min_lot:
+                        size = -min_lot
+                    elif max_lot < size:
+                        size = max_lot
+
+                    if size > 0:
+                        og.create_order(MARKET, BUY, size)
+                    else:
+                        og.create_order(MARKET, SELL, -size)
+
+                    time.sleep(3)
+                    og.remove_closed_orders()
+            except Exception:
+                og.log.error(traceback.format_exc())
+
+        conf.is_position_sync_active = False
+        conf.position_diff = 0
+
+        self.destroy_order_group(og)
+
+        self.log.warning(
+            f'finished to fix position mismatch for {conf.symbol}.')
+
+    def __worker(self):
+        self.__remove_closed_orders()
+        self.__update_unrealized_pnl()
+        self.__check_position_integrity()
 
 
 class PositionSyncConfig:
