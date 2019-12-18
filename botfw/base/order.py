@@ -166,16 +166,34 @@ class OrderManagerBase:
             else:
                 break
 
-    def __check_open_orders(self):
+    def __check_orders(self):
+        if not self.__check_timer.is_interval():
+            return
+
         now = time.time()
-        orders = []  # open orders whose state_ts is older than 60s
+
+        # remove orders closed(or canceled) more then twice retention time ago
+        rm_orders = []
         for o in self.orders.values():
-            if o.state not in [CLOSED, CANCELED] and now - o.state_ts > 60:
+            if o.state in [CLOSED, CANCELED] \
+                    and now - o.state_ts > self.retention * 2:
+                rm_orders.append(o)
+
+        for o in rm_orders:
+            del self.orders[o.id]
+
+        # check if there are 'open' orders which are already closed ----------
+        # find orders whose state_ts is more than retention time ago
+        orders = []
+        for o in self.orders.values():
+            if o.state not in [CLOSED, CANCELED] \
+                    and now - o.state_ts > self.retention:
                 orders.append(o)
 
         if not orders:
             return
 
+        # find the symbol with the oldest check timestamp
         oldest_ts, symbol = now, None
         for o in orders:
             ts = self.__last_check_tss.get(o.symbol, 0)
@@ -183,6 +201,7 @@ class OrderManagerBase:
                 oldest_ts, symbol = ts, o.symbol
         self.__last_check_tss[symbol] = now
 
+        # set actually closed(or canceled) orders state as 'canceled'
         self.log.debug(f'check if open orders for {symbol} are still alive')
         open_orders = self.api.fetch_open_orders(symbol)
         ids = [o['id'] for o in open_orders]
@@ -199,9 +218,7 @@ class OrderManagerBase:
     def __worker(self):
         self.__process_queued_order_event()
         self.__remove_closed_orders()
-
-        if self.__check_timer.is_interval():
-            self.__check_open_orders()
+        self.__check_orders()
 
 
 class PositionGroupBase(dict):
