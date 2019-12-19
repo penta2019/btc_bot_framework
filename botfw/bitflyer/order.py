@@ -45,7 +45,7 @@ class BitflyerOrderManager(OrderManagerBase):
                 o.close_ts = ts
             elif o.state != OPEN:
                 o.state, o.state_ts = OPEN, now
-                self.log.warning('something wrong with order state handling')
+                self.log.warning('got an execution for a not "open" order')
         elif t == 'ORDER':
             o.open_ts = ts
             o.child_order_id = e.child_order_id
