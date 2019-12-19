@@ -28,13 +28,22 @@ fx_orderbook = BitflyerOrderbook(FX_BTC_JPY, ws)
 om = BitflyerOrderManager(api, ws, retention=10)
 ogm = BitflyerOrderGroupManager(
     om, trades={FX_BTC_JPY: fx_trade}, retention=10)
+
 # ポジションズレを自動で修復。
-# このオプションを利用する場合、外部のポジションは利用できません（自動で決済される）
-# また、外部からの注文は定期的にすべてキャンセルされます。
+# このオプションを利用する場合、裁量ポジ、外部ポジは利用できません（自動で決済される）
 ogm.set_position_sync_config(
     FX_BTC_JPY, lambda: api.get_total_position(FX_BTC_JPY), 0.01, 0.5)
+
 fx_og = ogm.create_order_group(FX_BTC_JPY, 'fx')
-fx_og.set_order_log(log)  # 自前で注文のログを表示する場合、ここは不要
+
+# 注文イベント取得時のコールバック関数の設定
+# 引数に注文毎のイベント(paramsを分解したもの)が渡されます
+# 関数はwebsocketの受信スレッドから呼ばれるため長時間ブロッキングする処理は避けてください
+# fx_og.add_event_callback(lambda e: print(e.__dict__))
+
+# 自前で注文のログを表示する場合、ここは不要
+fx_og.set_order_log(log)
+
 # fx2_og = ogm.create_order_group(FX_BTC_JPY, 'fx2')
 # btc_og = ogm.create_order_group(BTC_JPY, 'btc')
 

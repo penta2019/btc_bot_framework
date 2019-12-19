@@ -282,11 +282,12 @@ class OrderGroupBase:
         self.order_log = None
         self.position_group = self.PositionGroup()
         self.orders = {}
+        self.event_cb = []
 
     def create_order(self, type_, side, amount, price=0, params={}):
         om = self.manager.order_manager
         o = om.Order(self.symbol, type_, side, amount, price, params)
-        o.event_cb = self._handle_event
+        o.event_cb = self.__handle_event2
         o.group_name = self.name
         o = om.create_order_internal(o)
         self.orders[o.id] = o
@@ -307,6 +308,12 @@ class OrderGroupBase:
     def set_closed_order_retention(self, sec):
         self.retention = sec
 
+    def add_event_callback(self, cb):
+        self.event_cb.append(cb)
+
+    def remove_event_callback(self, cb):
+        self.event_cb.remove(cb)
+
     def remove_closed_orders(self, retention=0):
         now = time.time()
         rm_id = []
@@ -321,6 +328,14 @@ class OrderGroupBase:
     def _handle_event(self, e):
         assert False
         return self
+
+    def __handle_event2(self, e):
+        self._handle_event(e)
+        for cb in self.event_cb:
+            try:
+                cb(e)
+            except Exception:
+                self.log.error(traceback.format_exc())
 
 
 class OrderGroupManagerBase:
