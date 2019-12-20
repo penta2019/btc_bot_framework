@@ -1,30 +1,15 @@
 import time
 
-from ..base.order import (
-    BUY, SELL,
-    LIMIT, MARKET,
-    OPEN, CLOSED, CANCELED, WAIT_OPEN, WAIT_CANCEL,
-    OrderManagerBase, OrderBase,
-    OrderGroupManagerBase, OrderGroupBase,
-    PositionGroupBase
-)
+from ..base import order as od
 from .api import ccxt_bitmex
 from ..etc.util import unix_time_from_ISO8601Z
 
-# silence linter (imported but unused)
-_DUMMY = [
-    BUY, SELL,
-    LIMIT, MARKET,
-    OPEN, CLOSED, CANCELED,
-    WAIT_OPEN, WAIT_CANCEL
-]
 
-
-class BitmexOrder(OrderBase):
+class BitmexOrder(od.OrderBase):
     pass
 
 
-class BitmexOrderManager(OrderManagerBase):
+class BitmexOrderManager(od.OrderManagerBase):
     Order = BitmexOrder
 
     def _after_auth(self):
@@ -38,15 +23,15 @@ class BitmexOrderManager(OrderManagerBase):
         now = time.time()
 
         status = e.ordStatus
-        if status == 'New' and o.state != OPEN:
+        if status == 'New' and o.state != od.OPEN:
             o.open_ts = ts
-            o.state, o.state_ts = OPEN, now
-        elif status == 'Filled' and o.state != CLOSED:
+            o.state, o.state_ts = od.OPEN, now
+        elif status == 'Filled' and o.state != od.CLOSED:
             o.close_ts = ts
-            o.state, o.state_ts = CLOSED, now
-        elif status == 'Canceled' and o.state != CANCELED:
+            o.state, o.state_ts = od.CLOSED, now
+        elif status == 'Canceled' and o.state != od.CANCELED:
             o.close_ts = ts
-            o.state, o.state_ts = CANCELED, now
+            o.state, o.state_ts = od.CANCELED, now
         else:
             self.log.error(f'Unknown order status: {status}')
 
@@ -70,7 +55,7 @@ class BitmexOrderManager(OrderManagerBase):
             self._handle_order_event(e)
 
 
-class BitmexPositionGroup(PositionGroupBase):
+class BitmexPositionGroup(od.PositionGroupBase):
     SIZE_IN_FIAT = True
 
     def __init__(self):
@@ -83,7 +68,7 @@ class BitmexPositionGroup(PositionGroupBase):
         self.pnl -= commission
 
 
-class BitmexOrderGroup(OrderGroupBase):
+class BitmexOrderGroup(od.OrderGroupBase):
     PositionGroup = BitmexPositionGroup
 
     def _handle_event(self, e):
@@ -91,11 +76,11 @@ class BitmexOrderGroup(OrderGroupBase):
         if not s:
             return
 
-        s = s if e.side.lower() == BUY else -s
+        s = s if e.side.lower() == od.BUY else -s
         self.position_group.update(p, s, c)
 
 
-class BitmexOrderGroupManager(OrderGroupManagerBase):
+class BitmexOrderGroupManager(od.OrderGroupManagerBase):
     OrderGroup = BitmexOrderGroup
 
 

@@ -1,30 +1,15 @@
 import time
 
-from ..base.order import (
-    BUY, SELL,
-    LIMIT, MARKET,
-    OPEN, CLOSED, CANCELED, WAIT_OPEN, WAIT_CANCEL,
-    OrderManagerBase, OrderBase,
-    OrderGroupManagerBase, OrderGroupBase,
-    PositionGroupBase
-)
+from ..base import order as od
 from .websocket_user_data import BinanceWebsocketUserData
 from .api import ccxt_binance
 
-# silence linter (imported but unused)
-_DUMMY = [
-    BUY, SELL,
-    LIMIT, MARKET,
-    OPEN, CLOSED, CANCELED,
-    WAIT_OPEN, WAIT_CANCEL
-]
 
-
-class BinanceOrder(OrderBase):
+class BinanceOrder(od.OrderBase):
     pass
 
 
-class BinanceOrderManager(OrderManagerBase):
+class BinanceOrderManager(od.OrderManagerBase):
     Order = BinanceOrder
 
     def __init__(self, api, ws=None, external=True, retention=60):
@@ -45,14 +30,14 @@ class BinanceOrderManager(OrderManagerBase):
         t = eo['x']
         if t == 'NEW':
             o.open_ts = ts
-            o.state, o.state_ts = OPEN, now
+            o.state, o.state_ts = od.OPEN, now
         elif t == 'PARTIAL_FILL':
             pass  # do nothing
         elif t == 'FILL':
             pass  # do nothing
         elif t in ['CANCELED', 'REJECTED', 'EXPIRED']:
             o.close_ts = ts
-            o.state, o.state_ts = CANCELED, now
+            o.state, o.state_ts = od.CANCELED, now
         elif t == 'PENDING_CANCEL':
             pass  # do nothing
         elif t == 'CALCULATED':
@@ -71,7 +56,7 @@ class BinanceOrderManager(OrderManagerBase):
             o.filled = filled
         if eo['X'] == 'FILLED':
             o.close_ts = ts
-            o.state, o.state_ts = CLOSED, now
+            o.state, o.state_ts = od.CLOSED, now
 
     def _generate_order_object(self, e):
         o = e.o
@@ -95,7 +80,7 @@ class BinanceOrderManager(OrderManagerBase):
             self.log.warning(f'Unknown event type "{e}"')
 
 
-class BinancePositionGroup(PositionGroupBase):
+class BinancePositionGroup(od.PositionGroupBase):
     def __init__(self):
         super().__init__()
         self.commission = 0  # total commissions in USD
@@ -106,7 +91,7 @@ class BinancePositionGroup(PositionGroupBase):
         self.pnl -= commission
 
 
-class BinanceOrderGroup(OrderGroupBase):
+class BinanceOrderGroup(od.OrderGroupBase):
     PositionGroup = BinancePositionGroup
 
     def _handle_event(self, e):
@@ -115,11 +100,11 @@ class BinanceOrderGroup(OrderGroupBase):
         if not s:
             return
 
-        s = s if o['S'].lower() == BUY else -s
+        s = s if o['S'].lower() == od.BUY else -s
         self.position_group.update(p, s, c)
 
 
-class BinanceOrderGroupManager(OrderGroupManagerBase):
+class BinanceOrderGroupManager(od.OrderGroupManagerBase):
     OrderGroup = BinanceOrderGroup
 
 

@@ -1,30 +1,15 @@
 import time
 
-from ..base.order import (
-    BUY, SELL,
-    LIMIT, MARKET,
-    OPEN, CLOSED, CANCELED, WAIT_OPEN, WAIT_CANCEL,
-    OrderManagerBase, OrderBase,
-    OrderGroupManagerBase, OrderGroupBase,
-    PositionGroupBase
-)
+from ..base import order as od
 from .api import ccxt_bitflyer
 from ..etc.util import unix_time_from_ISO8601Z, decimal_sum
 
-# silence linter (imported but unused)
-_DUMMY = [
-    BUY, SELL,
-    LIMIT, MARKET,
-    OPEN, CLOSED, CANCELED,
-    WAIT_OPEN, WAIT_CANCEL
-]
 
-
-class BitflyerOrder(OrderBase):
+class BitflyerOrder(od.OrderBase):
     pass
 
 
-class BitflyerOrderManager(OrderManagerBase):
+class BitflyerOrderManager(od.OrderManagerBase):
     Order = BitflyerOrder
 
     def _after_auth(self):
@@ -41,22 +26,22 @@ class BitflyerOrderManager(OrderManagerBase):
         if t == 'EXECUTION':
             o.filled = decimal_sum(o.filled, e.size)
             if o.filled == o.amount:
-                o.state, o.state_ts = CLOSED, now
+                o.state, o.state_ts = od.CLOSED, now
                 o.close_ts = ts
-            elif o.state != OPEN:
-                o.state, o.state_ts = OPEN, now
+            elif o.state != od.OPEN:
+                o.state, o.state_ts = od.OPEN, now
                 self.log.warning('got an execution for a not "open" order')
         elif t == 'ORDER':
             o.open_ts = ts
             o.child_order_id = e.child_order_id
-            if o.state == WAIT_OPEN:
-                o.state, o.state_ts = OPEN, now
+            if o.state == od.WAIT_OPEN:
+                o.state, o.state_ts = od.OPEN, now
         elif t == 'CANCEL_FAILED':
-            if o.state == WAIT_CANCEL:
-                o.state, o.state_ts = OPEN, now
+            if o.state == od.WAIT_CANCEL:
+                o.state, o.state_ts = od.OPEN, now
             self.log.warning(f'cancel failed: {id_}')
         elif t in ['CANCEL', 'ORDER_FAILED', 'EXPIRE']:
-            o.state, o.state_ts = CANCELED, now
+            o.state, o.state_ts = od.CANCELED, now
             o.close_ts = ts
             if t == 'ORDER_FAILED':
                 self.log.warning(f'order failed: {id_} {e.reason}')
@@ -82,7 +67,7 @@ class BitflyerOrderManager(OrderManagerBase):
             self._handle_order_event(e)
 
 
-class BitflyerPositionGroup(PositionGroupBase):
+class BitflyerPositionGroup(od.PositionGroupBase):
     def __init__(self):
         super().__init__()
         self.sfd = 0  # total sfd
@@ -97,18 +82,18 @@ class BitflyerPositionGroup(PositionGroupBase):
         self.pnl += -c + sfd
 
 
-class BitflyerOrderGroup(OrderGroupBase):
+class BitflyerOrderGroup(od.OrderGroupBase):
     PositionGroup = BitflyerPositionGroup
 
     def _handle_event(self, e):
         if e.event_type != 'EXECUTION':
             return
 
-        size = e.size if e.side.lower() == BUY else -e.size
+        size = e.size if e.side.lower() == od.BUY else -e.size
         self.position_group.update(e.price, size, e.commission, e.sfd)
 
 
-class BitflyerOrderGroupManager(OrderGroupManagerBase):
+class BitflyerOrderGroupManager(od.OrderGroupManagerBase):
     OrderGroup = BitflyerOrderGroup
 
 
