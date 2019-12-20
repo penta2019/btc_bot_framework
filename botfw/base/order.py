@@ -15,15 +15,24 @@ SELL = 'sell'
 LIMIT = 'limit'
 MARKET = 'market'
 
-# Order state
+# Order State
 OPEN = 'open'
 CLOSED = 'closed'
 CANCELED = 'canceled'
 WAIT_OPEN = 'wait_open'
 WAIT_CANCEL = 'wait_cancel'
 
+# Order Event
+EVENT_EXECUTION = 'execution'
+EVENT_OPEN = 'open'
+EVENT_CANCEL = 'cancel'
+EVENT_OPEN_FAILED = 'open_failed'
+EVENT_CANCEL_FAILED = 'cancel_failed'
+EVENT_CLOSE = 'close'
+EVENT_ERROR = 'error'
 
-class OrderBase(dict):
+
+class Order(dict):
     def __init__(self, symbol, type_, side, amount, price=0, params={}):
         super().__init__()
         self.__dict__ = self
@@ -51,9 +60,20 @@ class OrderBase(dict):
         self.event_cb = None    # callback: cb(event)
 
 
-class OrderManagerBase:
-    Order = OrderBase
+class OrderEvent(dict):
+    def __init__(self):
+        super().__init__()
+        self.__dict__ = self
+        self.id = None
+        self.ts = None
+        self.type = None
+        self.price = None    # EVENT_EXECUTION
+        self.size = None     # EVENT_EXECUTION buy: size > 0, sell: size < 0
+        self.message = None
+        self.info = None
 
+
+class OrderManagerBase:
     def __init__(self, api, ws, retention=60):
         self.log = logging.getLogger(self.__class__.__name__)
         self.api = api  # Api object
@@ -72,7 +92,7 @@ class OrderManagerBase:
         run_forever_nonblocking(self.__worker, self.log, 1)
 
     def create_order(self, symbol, type_, side, amount, price=0, params={}):
-        o = self.Order(symbol, type_, side, amount, price, params)
+        o = Order(symbol, type_, side, amount, price, params)
         return self.create_order_internal(o)
 
     def create_order_internal(self, o):
@@ -103,9 +123,9 @@ class OrderManagerBase:
                 self.cancel_order(o)
 
     def _handle_order_event(self, e):
-        o = self.orders.get(self._get_order_id(e))
+        o = self.orders.get(e.id)
         if o:
-            self.__update_order2(o, e)
+            self.__update_order(o, e)
         else:
             # if event comes before create_order returns
             # or order is not created by this class
@@ -115,23 +135,48 @@ class OrderManagerBase:
         assert False
         return self
 
-    def _get_order_id(self, e):
-        assert False
-        return self
-
-    def _update_order(self, o, e):
-        assert False
-        return self
-
     def _generate_order_object(self, e):
         assert False
         return self
 
-    def __update_order2(self, o, e):
-        self._update_order(o, e)
-        self.last_update_ts = time.time()
+    def __update_order(self, o, e):
+        now = time.time()
+        t = e.type
+        st = o.state
+        if t == EVENT_EXECUTION:
+            o.filled, o.trade_ts = decimal_sum(o.filled, abs(e.size)), now
+            if o.state == WAIT_OPEN:
+                o.state, o.open_ts = OPEN, e.ts
+                self.log.warning('got an execution for a not "open" order')
+            if o.filled == o.amount:
+                o.state, o.close_ts = CLOSED, e.ts
+        elif t == EVENT_OPEN:
+            o.state, o.open_ts = OPEN, e.ts
+        elif t == EVENT_CANCEL:
+            o.state, o.close_ts = CANCELED, e.ts
+        elif t == EVENT_OPEN_FAILED:
+            o.state = CANCELED
+            self.log.warning('failed to create order')
+        elif t == EVENT_CANCEL_FAILED:
+            if o.state == WAIT_CANCEL:
+                o.state = OPEN
+            self.log.warning('failed to cancel order')
+        elif t == EVENT_CLOSE:
+            o.state, o.close_ts = CLOSED, e.ts
+        elif t == EVENT_ERROR:
+            self.log.error(e.message)
+        else:
+            self.log.error(f'unhandled order event: {e}')
+
+        if e.message and t != EVENT_ERROR:
+            self.log.warn(e.message)
+
+        if o.state != st:
+            o.state_ts = now
         if o.state in [CLOSED, CANCELED]:
             self.__closed_orders.append(o)
+
+        self.last_update_ts = now
         if o.event_cb:
             o.event_cb(e)
 
@@ -141,20 +186,18 @@ class OrderManagerBase:
 
         while self.__event_queue:
             e = self.__event_queue.popleft()
-            i = self._get_order_id(e)
-            o = self.orders.get(i)
+            o = self.orders.get(e.id)
             if not o:  # if order is not created by this class
                 o = self._generate_order_object(e)
                 if not o:  # failed to external create order
                     continue
-                o.id = self._get_order_id(e)
+                o.id = e.id
                 o.external = True
                 o.state, o.state_ts = WAIT_OPEN, time.time()
-                self.orders[i] = o
+                self.orders[o.id] = o
                 self.log.debug(f'found external order: {o.id}')
-            self._update_order(o, e)
-            if o.event_cb:
-                o.event_cb(e)
+
+            self.__update_order(o, e)
 
     def __remove_closed_orders(self):
         while self.__closed_orders:
@@ -233,7 +276,7 @@ class PositionGroupBase(dict):
         self.average_price = 1
         self.last_update_ts = 0
 
-    def update(self, price, size):
+    def update(self, price, size, *args):
         avg0, pos0 = self.average_price, self.position
         avg1, pos1 = price, size
         pos = decimal_sum(pos0, pos1)
@@ -285,11 +328,10 @@ class OrderGroupBase:
         self.event_cb = []
 
     def create_order(self, type_, side, amount, price=0, params={}):
-        om = self.manager.order_manager
-        o = om.Order(self.symbol, type_, side, amount, price, params)
-        o.event_cb = self.__handle_event2
+        o = Order(self.symbol, type_, side, amount, price, params)
+        o.event_cb = self.__handle_event
         o.group_name = self.name
-        o = om.create_order_internal(o)
+        o = self.manager.order_manager.create_order_internal(o)
         self.orders[o.id] = o
         if self.order_log:
             self.order_log.info(
@@ -325,12 +367,10 @@ class OrderGroupBase:
         for id_ in rm_id:
             del self.orders[id_]
 
-    def _handle_event(self, e):
-        assert False
-        return self
+    def __handle_event(self, e):
+        if e.type == EVENT_EXECUTION:
+            self.position_group.update(e.price, e.size, e.info)
 
-    def __handle_event2(self, e):
-        self._handle_event(e)
         for cb in self.event_cb:
             try:
                 cb(e)
@@ -400,10 +440,10 @@ class OrderGroupManagerBase:
 
     def _worker_destroy_order_group(self, og):
         while og.orders:  # cancel all order
-            for id_, o in og.orders.items():
+            for _, o in og.orders.items():
                 if o not in [CLOSED, CANCELED]:
+                    og.log.info(f'cancel remaining order')
                     og.cancel_order(o)
-                    og.log.info(f'cancel remaining order: {id_}')
             time.sleep(3)
             og.remove_closed_orders()
         og.log.info('deleted')

@@ -14,9 +14,8 @@ def unix_time_from_ISO8601Z(date):
     return ts
 
 
-def decimal_sum(*args):
-    assert len(args) > 1
-    return float(sum(map(lambda x: decimal.Decimal(str(x)), args)))
+def decimal_sum(x0, x1):
+    return float(decimal.Decimal(str(x0)) + decimal.Decimal(str(x1)))
 
 
 def setup_logger(level=logging.INFO):

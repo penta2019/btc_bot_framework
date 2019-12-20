@@ -1,83 +1,68 @@
-import time
-
 from ..base import order as od
 from .websocket_user_data import BinanceWebsocketUserData
 from .api import ccxt_binance
 
 
-class BinanceOrder(od.OrderBase):
-    pass
-
-
 class BinanceOrderManager(od.OrderManagerBase):
-    Order = BinanceOrder
-
-    def __init__(self, api, ws=None, external=True, retention=60):
+    def __init__(self, api, ws=None, retention=60):
         wsud = BinanceWebsocketUserData(api)  # ws is unused
         wsud.add_callback(self.__on_events)
-        super().__init__(api, wsud, external, retention)
+        super().__init__(api, wsud, retention)
 
     def _after_auth(self):
         pass  # do nothing
 
-    def _get_order_id(self, e):
-        return str(e.o['i'])
-
-    def _update_order(self, o, e):
-        ts = e.E / 1000
-        now = time.time()
-        eo = e.o
-        t = eo['x']
-        if t == 'NEW':
-            o.open_ts = ts
-            o.state, o.state_ts = od.OPEN, now
-        elif t == 'PARTIAL_FILL':
-            pass  # do nothing
-        elif t == 'FILL':
-            pass  # do nothing
-        elif t in ['CANCELED', 'REJECTED', 'EXPIRED']:
-            o.close_ts = ts
-            o.state, o.state_ts = od.CANCELED, now
-        elif t == 'PENDING_CANCEL':
-            pass  # do nothing
-        elif t == 'CALCULATED':
-            pass  # TODO
-        elif t == 'TRADE':
-            pass  # ?
-        elif t == 'RESTATED':
-            o.price = float(eo['p'])
-            o.amount = float(eo['q'])
-        else:
-            self.log.error(f'Unknown event type: {t}')
-
-        filled = float(eo['z'])
-        if filled != o.filled:
-            o.trade_ts = ts
-            o.filled = filled
-        if eo['X'] == 'FILLED':
-            o.close_ts = ts
-            o.state, o.state_ts = od.CLOSED, now
-
     def _generate_order_object(self, e):
-        o = e.o
+        o = e.info['o']
         symbol = ccxt_binance.markets_by_id[o['s']]['symbol']
-        return self.Order(
+        return od.Order(
             symbol, o['o'].lower(), o['S'].lower(),
             float(o['q']), float(o['p']))
 
     def __on_events(self, msg):
-        import pprint
-        pprint.pprint(msg)
-
-        e = BinanceOrderEvent()
-        e.__dict__ = msg
+        e = msg
         type_ = msg['e']
         if type_ == 'ACCOUNT_UPDATE':
             pass
         elif type_ == 'ORDER_TRADE_UPDATE':
-            self._handle_order_event(e)
+            o = e['o']
+            oe = od.OrderEvent()
+            oe.info = e
+            oe.id = str(o['i'])
+            oe.ts = e['E'] / 1000
+
+            t = o['x']
+            size = float(o['l'])
+            if size:
+                oe.type = od.EVENT_EXECUTION
+                oe.price = float(o['L'])
+                oe.size = size if o['S'] == 'BUY' else -size
+            elif t == 'NEW':
+                oe.type = od.EVENT_OPEN
+            elif t == 'PARTIAL_FILL':
+                pass  # do nothing
+            elif t == 'FILL':
+                oe.type = od.EVENT_CLOSE
+            elif t in ['CANCELED', 'EXPIRED']:
+                oe.type = od .EVENT_CANCEL
+            elif t == 'PENDING_CANCEL':
+                pass  # do nothing
+            elif t == 'REJECTED':
+                oe.type = od.EVENT_OPEN_FAILED
+            elif t == 'CALCULATED':
+                pass  # TODO
+            elif t == 'TRADE':
+                pass  # Execution?
+            elif t == 'RESTATED':
+                pass  # TODO
+                # price = float(o['p'])
+                # amount = float(o['q'])
+            else:
+                self.log.error(f'Unknown order event type: {t}')
+
+            self._handle_order_event(oe)
         else:
-            self.log.warning(f'Unknown event type "{e}"')
+            self.log.warning(f'Unknown event type: {type_}')
 
 
 class BinancePositionGroup(od.PositionGroupBase):
@@ -85,8 +70,9 @@ class BinancePositionGroup(od.PositionGroupBase):
         super().__init__()
         self.commission = 0  # total commissions in USD
 
-    def update(self, price, size, commission):
+    def update(self, price, size, info):
         super().update(price, size)
+        commission = float(info['o'].get('n') or 0)
         self.commission += commission
         self.pnl -= commission
 
@@ -94,21 +80,6 @@ class BinancePositionGroup(od.PositionGroupBase):
 class BinanceOrderGroup(od.OrderGroupBase):
     PositionGroup = BinancePositionGroup
 
-    def _handle_event(self, e):
-        o = e.o
-        p, s, c = float(o['L']), float(o['l']), float(o.get('n') or 0)
-        if not s:
-            return
-
-        s = s if o['S'].lower() == od.BUY else -s
-        self.position_group.update(p, s, c)
-
 
 class BinanceOrderGroupManager(od.OrderGroupManagerBase):
     OrderGroup = BinanceOrderGroup
-
-
-class BinanceOrderEvent:
-    pass
-    # Binance USER DATA STREAM (future)
-    # https://binanceapitest.github.io/Binance-Futures-API-doc/userdatastream/
