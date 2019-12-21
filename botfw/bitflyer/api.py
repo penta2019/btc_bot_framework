@@ -1,6 +1,6 @@
 import ccxt
 from ..base.api import ApiBase
-from ..etc.util import decimal_sum
+from ..etc.util import decimal_add
 
 ccxt_bitflyer = ccxt.bitflyer()
 ccxt_bitflyer.load_markets()
@@ -35,5 +35,5 @@ class BitflyerApi(ApiBase, ccxt.bitflyer):
         total = 0
         for pos in self.fetch_positions(symbol):
             size = -pos['size'] if pos['side'] == 'SELL' else pos['size']
-            total = decimal_sum(total, size)
+            total = decimal_add(total, size)
         return total

@@ -4,7 +4,7 @@ import collections
 import threading
 import traceback
 
-from ..etc.util import decimal_sum, run_forever_nonblocking, Timer
+from ..etc.util import decimal_add, run_forever_nonblocking, Timer
 
 
 # Order Side
@@ -144,7 +144,7 @@ class OrderManagerBase:
         t = e.type
         st = o.state
         if t == EVENT_EXECUTION:
-            o.filled, o.trade_ts = decimal_sum(o.filled, abs(e.size)), now
+            o.filled, o.trade_ts = decimal_add(o.filled, abs(e.size)), now
             if o.state == WAIT_OPEN:
                 o.state, o.open_ts = OPEN, e.ts
                 self.log.warning('got an execution for a not "open" order')
@@ -279,7 +279,7 @@ class PositionGroupBase(dict):
     def update(self, price, size, *args):
         avg0, pos0 = self.average_price, self.position
         avg1, pos1 = price, size
-        pos = decimal_sum(pos0, pos1)
+        pos = decimal_add(pos0, pos1)
 
         if pos == 0:
             avg = 1
@@ -421,7 +421,7 @@ class OrderGroupManagerBase:
         total = 0
         for og in self.order_groups.values():
             if og.symbol == symbol:
-                total = decimal_sum(total, og.position_group.position)
+                total = decimal_add(total, og.position_group.position)
         return total
 
     def get_last_update_timestamp(self, symbol):
@@ -495,7 +495,7 @@ class OrderGroupManagerBase:
                 self.position_diff = 0
                 continue
 
-            diff = decimal_sum(client, -server)
+            diff = decimal_add(client, -server)
             if diff == conf.position_diff:
                 # start thread to fix mismatch
                 thread = threading.Thread(
@@ -527,7 +527,7 @@ class OrderGroupManagerBase:
         while pg.position != diff:
             try:
                 if not og.orders:
-                    size = decimal_sum(diff, -pg.position)
+                    size = decimal_add(diff, -pg.position)
                     if size < -max_lot:
                         size = -max_lot
                     elif -min_lot < size < 0:

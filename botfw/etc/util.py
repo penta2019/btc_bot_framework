@@ -14,7 +14,7 @@ def unix_time_from_ISO8601Z(date):
     return ts
 
 
-def decimal_sum(x0, x1):
+def decimal_add(x0, x1):
     return float(decimal.Decimal(str(x0)) + decimal.Decimal(str(x1)))
 
 

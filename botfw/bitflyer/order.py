@@ -1,6 +1,6 @@
 from ..base import order as od
 from .api import ccxt_bitflyer
-from ..etc.util import unix_time_from_ISO8601Z, decimal_sum
+from ..etc.util import unix_time_from_ISO8601Z, decimal_add
 
 
 class BitflyerOrderManager(od.OrderManagerBase):
@@ -52,7 +52,7 @@ class BitflyerPositionGroup(od.PositionGroupBase):
     def update(self, price, size, info):
         super().update(price, size)
         commission, sfd = info['commission'], info['sfd']
-        self.position = decimal_sum(self.position, -commission)
+        self.position = decimal_add(self.position, -commission)
         c = price * commission
         self.commission += c
         self.sfd += sfd

@@ -104,7 +104,6 @@ trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照�
 
 
 ## 今後の予定
-* ポジションずれの自動修正機能の実装
 * 取引所の追加予定: liquid
 * サンプルロジックの追加（SFDbotを検討中）
 * その他諸々。
