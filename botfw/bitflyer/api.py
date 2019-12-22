@@ -10,30 +10,38 @@ class BitflyerApi(ApiBase, ccxt.bitflyer):
     def __init__(self, ccxt_config):
         ApiBase.__init__(self)
         ccxt.bitflyer.__init__(self, ccxt_config)
+        self.load_markets()
 
-    def fetch_boardstate(self, symbol):
-        func = getattr(self, 'public_get_getboardstate')
-        return func({'product_code': symbol})
+        # silence linter
+        self.public_get_getboardstate = getattr(
+            self, 'public_get_getboardstate')
+        self.private_get_getpositions = getattr(
+            self, 'private_get_getpositions')
 
-    def fetch_health(self, symbol):
-        func = getattr(self, 'public_get_gethealth')
-        return func(symbol)
+    def fetch_status(self, params={'product_code': 'FX_BTC_JPY'}):
+        res = self.public_get_getboardstate(params)
+        status = 'ok' if res['state'] == 'RUNNING' else 'shutdown'
+        return {
+            'status': status,  # 'ok', 'shutdown', 'error', 'maintenance'
+            'updated': None,
+            'eta': None,
+            'url': None,
+        }
+
+    def fetch_position(self, symbol):
+        market_id = self.market_id(symbol)
+        positions = self.private_get_getpositions({'product_code': market_id})
+        total = 0
+        for pos in positions:
+            size = -pos['size'] if pos['side'] == 'SELL' else pos['size']
+            total = decimal_add(total, size)
+        return total
 
     def fetch_collateral(self):
         func = getattr(self, 'private_get_getcollateral')
         return func()
 
-    def fetch_positions(self, symbol):
-        func = getattr(self, 'private_get_getpositions')
-        return func({'product_code': symbol})
-
     def cancel_all_order(self, symbol):
+        market_id = self.market_id(symbol)
         func = getattr(self, 'private_post_cancelallchildorders')
-        return func({'product_code': symbol})
-
-    def get_total_position(self, symbol):
-        total = 0
-        for pos in self.fetch_positions(symbol):
-            size = -pos['size'] if pos['side'] == 'SELL' else pos['size']
-            total = decimal_add(total, size)
-        return total
+        return func({'product_code': market_id})
