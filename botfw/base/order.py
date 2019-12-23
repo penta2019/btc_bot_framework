@@ -100,7 +100,7 @@ class OrderManagerBase:
             self.__count_lock += 1
 
             res = self.api.create_order(
-                o.symbol, o.type, o.side, o.amount, o.price)
+                o.symbol, o.type, o.side, o.amount, o.price, o.params)
             o.id = res['id']
             o.state, o.state_ts = WAIT_OPEN, time.time()
             self.orders[o.id] = o
