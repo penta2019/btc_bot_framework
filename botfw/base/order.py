@@ -432,10 +432,10 @@ class OrderGroupManagerBase:
         return ts
 
     def set_position_sync_config(
-            self, symbol, position_func, min_lot, max_lot,
+            self, symbol, min_lot, max_lot, position_func=None,
             action_filter=None, check_interval=60, update_margin=1):
         self.position_sync_configs[symbol] = PositionSyncConfig(
-            symbol, position_func, min_lot, max_lot,
+            symbol, min_lot, max_lot, position_func,
             action_filter, check_interval, update_margin)
 
     def _worker_destroy_order_group(self, og):
@@ -483,7 +483,10 @@ class OrderGroupManagerBase:
             self.log.debug(f'position integrity check for {conf.symbol}')
 
             # get server and client position
-            server = conf.position_func()
+            if conf.position_func:
+                server = conf.position_func()
+            else:
+                server = self.order_manager.api.fetch_position(conf.symbol)
             client = self.get_total_position(conf.symbol)
 
             ts1 = self.get_last_update_timestamp(conf.symbol)
@@ -564,12 +567,12 @@ class OrderGroupManagerBase:
 
 class PositionSyncConfig:
     def __init__(
-            self, symbol, position_func, min_lot, max_lot,
+            self, symbol, min_lot, max_lot, position_func,
             action_filter, check_interval, update_margin):
         self.symbol = symbol
-        self.position_func = position_func
         self.min_lot = min_lot
         self.max_lot = max_lot
+        self.position_func = position_func
         self.action_filter = action_filter
         self.check_interval = check_interval
         self.update_margin = update_margin

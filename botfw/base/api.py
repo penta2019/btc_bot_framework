@@ -13,6 +13,10 @@ class ApiBase:
         self.count = {}
         run_forever_nonblocking(self.__worker, self.log, 1)
 
+    def fetch_position(self, symbol):
+        assert False
+        return 0
+
     def request(self, path, api='public', method='GET', params={},
                 headers=None, body=None):
         try:

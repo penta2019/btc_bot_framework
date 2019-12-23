@@ -31,8 +31,7 @@ ogm = BitflyerOrderGroupManager(
 
 # ポジションズレを自動で修復。
 # このオプションを利用する場合、裁量ポジ、外部ポジは利用できません（自動で決済される）
-# ogm.set_position_sync_config(
-#     FX_BTC_JPY, lambda: api.fetch_position(FX_BTC_JPY), 0.01, 0.5)
+# ogm.set_position_sync_config(FX_BTC_JPY, 0.01, 0.5)
 
 fx_og = ogm.create_order_group(FX_BTC_JPY, 'fx')
 
@@ -88,15 +87,11 @@ def main():
             # print API capacity and count
             log.info(f'API: {{capacity:{api.capacity}, count:{api.count}}}')
 
-            # call rest api
-            board_state = api.fetch_boardstate(FX_BTC_JPY)
-            (f'BOARD_STATE: {board_state}')
-
             # pprint.pprint(om.orders)  # print all orders
             # pprint.pprint(fx_og.orders)  # print orders in 'fx' order group
 
             # BFFX ENDLESS LOSING MARKET MAKER LOGIC
-            if board_state['state'] != 'RUNNING':
+            if api.fetch_status()['status'] != 'ok':
                 continue
 
             # handle old order
