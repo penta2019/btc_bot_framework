@@ -6,7 +6,7 @@ import inspect
 from .util import run_forever_nonblocking
 
 
-class Cmd:
+class CmdServer:
     def __init__(self, port):
         self.log = logging.getLogger(self.__class__.__name__)
         self.sock_addr = ('localhost', port)
@@ -92,3 +92,14 @@ class CmdClient:
         msg, _ = self.sock.recvfrom(8192)
         if self.print_result:
             print(msg.decode())
+
+
+class Cmd:
+    def __init__(self, globals_):
+        self.globals = globals_
+
+    def eval(self, *args):
+        return eval(' '.join(args).replace(r'\s', ' '), self.globals)
+
+    def exec(self, *args):
+        return exec(' '.join(args).replace(r'\s', ' '), self.globals)
