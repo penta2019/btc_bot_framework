@@ -61,11 +61,11 @@ class WebsocketBase:
     def _set_auth_result(self, success):
         if success:
             self.log.info('authentication succeeded')
-            self.is_open = True
+            self.is_auth = True
             self._run_callbacks(self.__after_auth_cb)
         else:
             self.log.info('authentication failed')
-            self.is_open = True
+            self.is_auth = False
 
     def _on_init(self):
         pass
