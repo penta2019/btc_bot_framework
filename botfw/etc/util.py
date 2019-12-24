@@ -49,7 +49,7 @@ def run_forever_nonblocking(cb, log, sleep, exception_sleep=5):
     thread.start()
 
 
-class StopRunForever(Exception):
+class StopRunForever(BaseException):
     pass
 
 
