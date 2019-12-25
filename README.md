@@ -67,7 +67,7 @@ $ python3 -c 'import sys; print(sys.path)'
 ```
 2. どこでも良いので（できれば管理者権限の必要ないディレクトリ）にbotfwのシンボリックリンクを作成。
 ```sh
-$ cd /home/sk/.local/lib/python3.8/site-packages　 # pip install --user で使われるディレクトリ
+$ cd /home/sk/.local/lib/python3.8/site-packages  # pip install --user で使われるディレクトリ
 $ ln -s /path/to/btc_bot_framework/botfw botfw
 ```
 
@@ -101,6 +101,7 @@ trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照�
     * 'LIMIT'(bitflyer), 'Limit'(bitmex), 'LIMIT'(binance) -> 'limit'(ccxt)
 
 * メソッド名の英単語は省略しませんが、変数名、及び引数名は意味の分かる範囲内で自由に省略します。
+* 日本語部分（サンプルコード、README）を含め、全角スペース全面禁止
 
 
 ## 今後の予定

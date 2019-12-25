@@ -24,7 +24,6 @@ def setup_logger(level=logging.INFO):
     fmt = MillisecondFormatter(
         '[%(asctime)s %(levelname).1s %(name)s] %(message)s')
     handler = logging.StreamHandler()
-    # handler = logging.FileHandler(filename="test.log")
     handler.setFormatter(fmt)
     log.addHandler(handler)
 
