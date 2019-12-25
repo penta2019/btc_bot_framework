@@ -1,3 +1,7 @@
+# Depricated 非奨励
+# このファイルは参考のために残してあります。
+# samples/simple_bot.pyのFactoryを使用したコードを参照してください。
+
 import time
 import logging
 import json
