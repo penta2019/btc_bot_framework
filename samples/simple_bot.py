@@ -4,25 +4,30 @@ import json
 import traceback
 
 from botfw.base import *
-from botfw.bitflyer.factory import BitflyerFactory as factory
-# from botfw.bitmex.factory import BitmexFactory as factory
-# from botfw.binance.factory import BinanceFactory as factory
-
 from botfw.etc.util import setup_logger
 
+# ==================== このセクションを書き換えてください ====================
+# FX_BTC_JPY @bitflyer
+from botfw.bitflyer.factory import BitflyerFactory as factory
+SYMBOL = 'FX_BTC_JPY'
+MIN_SIZE = 0.01
+ccxt_config = {}
 
-SYMBOL = 'FX_BTC_JPY'  # FX_BTC_JPY(bitflyer)
-# SYMBOL = 'BTC/USD'  # XBTUSD(bitmex)
-# SYMBOL = 'BTC/USDT'  # BTCUSDT(binance future)
+# XBTUSD @bitmex
+# from botfw.bitmex.factory import BitmexFactory as factory
+# SYMBOL = 'BTC/USD'
+# MIN_SIZE = 1
+# ccxt_config = {}
 
-MIN_SIZE = 0.01  # 最小発注可能サイズ 0.01(bitflyer), 1(bitmex), 0.001(binance)
+# BTCUSDT @binance
+# from botfw.binance.factory import BinanceFactory as factory
+# SYMBOL = 'BTC/USDT'
+# MIN_SIZE = 0.001
+# ccxt_config = {'options': {'defaultType': 'future'}}
 
 account = json.loads(open('account/key_secret.json').read())
-ccxt_config = {
-    'apiKey': account['key'],  # YOUR_API_KEY
-    'secret': account['secret'],  # YOUR_API_SECRET
-    # 'options': {'defaultType': 'future'},  # Binance future用
-}
+ccxt_config['apiKey'] = account['key']     # YOUR_API_KEY
+ccxt_config['secret'] = account['secret']  # YOUR_API_SECRET
 
 # ==================== ここから取引所共通のコード ====================
 setup_logger(logging.INFO)
@@ -42,7 +47,7 @@ trade = f.create_trade(SYMBOL)
 orderbook = f.create_orderbook(SYMBOL)
 og = f.create_order_group(SYMBOL, 'test1')
 og.set_order_log(log)  # 自前で注文のログを表示する場合、ここは不要
-# og.add_event_callback(lambda e: print(e.__dict__))　# 注文イベント取得時のコールバック関数
+# og.add_event_callback(lambda e: print(e.__dict__))  # 注文イベント取得時のコールバック関数
 
 
 def trade_cb(ts, price, size):
@@ -83,10 +88,11 @@ if __name__ == '__main__':
             # pprint.pprint(om.orders)  # すべての注文の表示
             # pprint.pprint(og.orders)  # OrderGroupに属する注文の表示
 
+            # サーバーが稼働中であることを確認
             if api.fetch_status()['status'] != 'ok':
                 continue
 
-            # handle old order
+            # 古い注文の処理
             def handle_old_order(o):
                 if o.state == OPEN:
                     og.cancel_order(o)
@@ -101,7 +107,7 @@ if __name__ == '__main__':
             if sell_order:
                 sell_order = handle_old_order(sell_order)
 
-            # create order
+            # best bid, best askに最小ロットで指値
             pos = og.position_group.position
             if not buy_order and pos <= 0:
                 price = best_bid[0]
