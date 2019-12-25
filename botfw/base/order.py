@@ -225,7 +225,7 @@ class OrderManagerBase:
         for o in rm_orders:
             del self.orders[o.id]
 
-        # check if there are 'open' orders which are already closed ----------
+        # check if there are 'open' orders which are already closed
         # find orders whose state_ts is more than retention time ago
         orders = []
         for o in self.orders.values():
