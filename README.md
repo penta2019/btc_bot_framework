@@ -74,7 +74,7 @@ $ ln -s /path/to/btc_bot_framework/botfw botfw
 ## 使い方
 **TODO**<br>
 samples内のファイルを参照してください。
-* samples/bitflyer/simple_example_bot.py 簡単なbotの実装例。あくまで使い方を確認する用。
+* samples/simple_bot.py 簡単なbotの実装例。あくまで使い方を確認する用。
 * samples/bitlyfer/trade.py 約定データを取得して表示します。
 * samples/bitflyer/orderbook.py 板情報を取得して表示します。
 <br>
@@ -98,7 +98,7 @@ trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照�
     * 'FX_BTC_JPY'(bitflyer) -> 'FX_BTC_JPY'(ccxt)
     * 'BTC_JPY(bitflyer) -> 'BTC/JPY'(ccxt)
     * 'BUY'(bitflyer), 'Buy'(bitmex), 'BUY'(binance) -> 'buy'(ccxt)
-    * 'limit'(bitflyer), 'Limit'(bitmex), 'LIMIT'(binance) -> 'limit'(ccxt)
+    * 'LIMIT'(bitflyer), 'Limit'(bitmex), 'LIMIT'(binance) -> 'limit'(ccxt)
 
 * メソッド名の英単語は省略しませんが、変数名、及び引数名は意味の分かる範囲内で自由に省略します。
 
@@ -106,7 +106,6 @@ trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照�
 ## 今後の予定
 * 取引所の追加予定: liquid
 * サンプルロジックの追加（SFDbotを検討中）
-* その他諸々。
 
 ## お願い
 一人で色々考えて作るのは結構大変なので、コミッターやデバッガー、改善案を出してくれる人を募集しています。<br>
