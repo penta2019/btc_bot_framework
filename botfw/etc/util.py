@@ -39,7 +39,7 @@ def run_forever(cb, log, sleep, exception_sleep=5):
         except StopRunForever:
             break
         except no_traceback_errors as e:
-            log.error(e)
+            log.error(f'{type(e).__name__}: {e}')
             time.sleep(exception_sleep)
         except Exception:
             log.error(traceback.format_exc())
