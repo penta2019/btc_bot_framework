@@ -6,11 +6,14 @@ ccxt_binance.load_markets()
 
 
 class BinanceApi(ApiBase, ccxt.binance):
+    FUTURE = False
+
     def __init__(self, ccxt_config):
+        if self.FUTURE:
+            ccxt_config.setdefault('options', {})['defaultType'] = 'future'
         ApiBase.__init__(self)
         ccxt.binance.__init__(self, ccxt_config)
         self.load_markets()
-        self.future = self.options.get('defaultType') == 'future'
 
         # silence linter
         self.fapiPrivate_get_positionrisk = getattr(
@@ -28,7 +31,11 @@ class BinanceApi(ApiBase, ccxt.binance):
         # POST: create new
         # PUT: keep alive (every 30 minutes)
         # DELETE: close
-        if self.future:
+        if self.FUTURE:
             return self.request('listenKey', 'fapiPrivate', method)
         else:
             return self.request('userDataStream', 'v3', method)
+
+
+class BinanceFutureApi(BinanceApi):
+    FUTURE = True

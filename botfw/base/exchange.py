@@ -3,7 +3,7 @@ def none(*args):
     return args[0]
 
 
-class FactoryBase:  # Abstract Factory
+class ExchangeBase:  # Abstract Factory
     Api = none
     Websocket = none
     Trade = none

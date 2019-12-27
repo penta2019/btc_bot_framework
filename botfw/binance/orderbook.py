@@ -1,13 +1,15 @@
 from ..base.orderbook import OrderbookBase
-from .websocket import BinanceWebsocket
+from .websocket import BinanceWebsocket, BinanceFutureWebsocket
 from .api import ccxt_binance
 
 
 class BinanceOrderbook(OrderbookBase):
-    def __init__(self, symbol, ws=None, future=False):
+    Websocket = BinanceWebsocket
+
+    def __init__(self, symbol, ws=None):
         super().__init__()
         self.symbol = symbol
-        self.ws = ws or BinanceWebsocket(future=future)
+        self.ws = ws or self.Websocket()
         self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
@@ -28,3 +30,7 @@ class BinanceOrderbook(OrderbookBase):
                 sd.pop(p * sign, None)
             else:
                 sd[p * sign] = [p, s]
+
+
+class BinanceFutureOrderbook(BinanceOrderbook):
+    Websocket = BinanceFutureWebsocket

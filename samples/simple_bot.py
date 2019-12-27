@@ -3,49 +3,48 @@ import logging
 import json
 import traceback
 
-from botfw.base import *
-from botfw.etc.util import setup_logger
+import botfw as fw
 
 # ==================== このセクションを書き換えてください ====================
+account = json.loads(open('account/key_secret.json').read())
+ccxt_config = {
+    'apiKey': account['key'],     # YOUR_API_KEY
+    'secret': account['secret'],  # YOUR_API_SECRET
+}
+
 # FX_BTC_JPY @bitflyer
-from botfw.bitflyer.factory import BitflyerFactory as factory
+exchange = fw.Bitflyer
 SYMBOL = 'FX_BTC_JPY'
 MIN_SIZE = 0.01
-ccxt_config = {}
 
 # XBTUSD @bitmex
-# from botfw.bitmex.factory import BitmexFactory as factory
+# exchange = fw.Bitmex
 # SYMBOL = 'BTC/USD'
 # MIN_SIZE = 1
-# ccxt_config = {}
 
 # BTCUSDT @binance
-# from botfw.binance.factory import BinanceFactory as factory
+# exchange = fw.Binance
 # SYMBOL = 'BTC/USDT'
 # MIN_SIZE = 0.001
 # ccxt_config = {'options': {'defaultType': 'future'}}
 
-account = json.loads(open('account/key_secret.json').read())
-ccxt_config['apiKey'] = account['key']     # YOUR_API_KEY
-ccxt_config['secret'] = account['secret']  # YOUR_API_SECRET
-
 # ==================== ここから取引所共通のコード ====================
-setup_logger(logging.INFO)
+fw.setup_logger(logging.INFO)
 log = logging.getLogger()
 
-f = factory()
-f.create_basics(ccxt_config)
-api = f.api
-ws = f.websocket
-om = f.order_manager
-ogm = f.order_group_manager
+ex = exchange()
+ex.create_basics(ccxt_config)
+api = ex.api
+ws = ex.websocket
+om = ex.order_manager
+ogm = ex.order_group_manager
 
 # ポジション自動修復。
 # ogm.set_position_sync_config(SYMBOL, MIN_SIZE, MIN_SIZE * 100)
 
-trade = f.create_trade(SYMBOL)
-orderbook = f.create_orderbook(SYMBOL)
-og = f.create_order_group(SYMBOL, 'test1')
+trade = ex.create_trade(SYMBOL)
+orderbook = ex.create_orderbook(SYMBOL)
+og = ex.create_order_group(SYMBOL, 'test1')
 og.set_order_log(log)  # 自前で注文のログを表示する場合、ここは不要
 # og.add_event_callback(lambda e: print(e.__dict__))  # 注文イベント取得時のコールバック関数
 
@@ -94,11 +93,11 @@ if __name__ == '__main__':
 
             # 古い注文の処理
             def handle_old_order(o):
-                if o.state == OPEN:
+                if o.state == fw.OPEN:
                     og.cancel_order(o)
-                if o.state == WAIT_CANCEL:
+                if o.state == fw.WAIT_CANCEL:
                     time.sleep(1)
-                if o.state in [CLOSED, CANCELED]:
+                if o.state in [fw.CLOSED, fw.CANCELED]:
                     return None
                 return o
 
@@ -111,10 +110,12 @@ if __name__ == '__main__':
             pos = og.position_group.position
             if not buy_order and pos <= 0:
                 price = best_bid[0]
-                buy_order = og.create_order(LIMIT, BUY, MIN_SIZE, price)
+                buy_order = og.create_order(
+                    fw.LIMIT, fw.BUY, MIN_SIZE, price)
             if not sell_order and pos >= 0:
                 price = best_ask[0]
-                sell_order = og.create_order(LIMIT, SELL, MIN_SIZE, price)
+                sell_order = og.create_order(
+                    fw.LIMIT, fw.SELL, MIN_SIZE, price)
 
         except KeyboardInterrupt:
             break

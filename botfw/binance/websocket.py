@@ -5,12 +5,10 @@ from ..base.websocket import WebsocketBase
 
 
 class BinanceWebsocket(WebsocketBase):
-    SPOT_ENDPOINT = 'wss://stream.binance.com:9443/ws'
-    FUTURE_ENDPOINT = 'wss://fstream.binance.com/ws'
+    ENDPOINT = 'wss://stream.binance.com:9443/ws'
 
-    def __init__(self, key=None, secret=None, future=False):
-        endpoint = self.FUTURE_ENDPOINT if future else self.SPOT_ENDPOINT
-        super().__init__(endpoint)
+    def __init__(self, key=None, secret=None):
+        super().__init__(self.ENDPOINT)
         self.__key = key
         self.__secret = secret
         self.__next_id = 1
@@ -66,3 +64,7 @@ class BinanceWebsocket(WebsocketBase):
                     self.log.warning(f'Unknown message {msg}')
         except Exception:
             self.log.error(traceback.format_exc())
+
+
+class BinanceFutureWebsocket(BinanceWebsocket):
+    ENDPOINT = 'wss://fstream.binance.com/ws'

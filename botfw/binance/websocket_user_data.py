@@ -3,8 +3,7 @@ from ..base.websocket import WebsocketBase
 
 
 class BinanceWebsocketUserData(WebsocketBase):
-    SPOT_ENDPOINT = 'wss://stream.binance.com:9443/ws'
-    FUTURE_ENDPOINT = 'wss://fstream.binance.com/ws'
+    ENDPOINT = 'wss://stream.binance.com:9443/ws'
 
     def __init__(self, api):
         self.__api = api
@@ -20,10 +19,7 @@ class BinanceWebsocketUserData(WebsocketBase):
     def _on_init(self):
         res = self.__api.listen_key()
         key = res['listenKey']
-        if self.__api.future:
-            self.url = f'{self.FUTURE_ENDPOINT}/{key}'
-        else:
-            self.url = f'{self.SPOT_ENDPOINT}/{key}'
+        self.url = f'{self.ENDPOINT}/{key}'
 
     def _on_open(self):
         super()._on_open()
@@ -32,3 +28,7 @@ class BinanceWebsocketUserData(WebsocketBase):
     def _on_message(self, msg):
         msg = json.loads(msg)
         self._run_callbacks(self.__cb, msg)
+
+
+class BinanceFutureWebsocketUserData(BinanceWebsocketUserData):
+    ENDPOINT = 'wss://fstream.binance.com/ws'

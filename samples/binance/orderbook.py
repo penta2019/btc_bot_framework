@@ -1,3 +1,3 @@
 from botfw.base.orderbook import test_orderbook
-from botfw.binance.orderbook import BinanceOrderbook
-test_orderbook(BinanceOrderbook('BTC/USDT', future=True))
+from botfw.binance.orderbook import BinanceFutureOrderbook
+test_orderbook(BinanceFutureOrderbook('BTC/USDT'))
