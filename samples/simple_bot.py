@@ -22,11 +22,10 @@ MIN_SIZE = 0.01
 # SYMBOL = 'BTC/USD'
 # MIN_SIZE = 1
 
-# BTCUSDT @binance
-# exchange = fw.Binance
+# BTCUSDT @binance(future)
+# exchange = fw.BinanceFuture
 # SYMBOL = 'BTC/USDT'
 # MIN_SIZE = 0.001
-# ccxt_config = {'options': {'defaultType': 'future'}}
 
 # ==================== ここから取引所共通のコード ====================
 fw.setup_logger(logging.INFO)
