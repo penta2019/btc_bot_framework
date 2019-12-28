@@ -8,8 +8,10 @@ from ..base.websocket import WebsocketBase
 
 
 class BitmexWebsocket(WebsocketBase):
+    ENDPOINT = 'wss://www.bitmex.com/realtime'
+
     def __init__(self, key=None, secret=None):
-        super().__init__('wss://www.bitmex.com/realtime')
+        super().__init__(self.ENDPOINT)
         self.__key = key
         self.__secret = secret
         self.__request_table = {}  # (msg, cb, description)

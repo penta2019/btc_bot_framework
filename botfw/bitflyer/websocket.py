@@ -9,8 +9,10 @@ from ..base.websocket import WebsocketBase
 
 
 class BitflyerWebsocket(WebsocketBase):
+    ENDPOINT = 'wss://ws.lightstream.bitflyer.com/json-rpc'
+
     def __init__(self, key=None, secret=None):
-        super().__init__('wss://ws.lightstream.bitflyer.com/json-rpc')
+        super().__init__(self.ENDPOINT)
         self.__key = key
         self.__secret = secret
         self.__next_id = 1
