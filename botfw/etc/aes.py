@@ -41,8 +41,9 @@ def cmd_decrypt():
 
 
 def load_encrypted_json_file(file_path):
+    cipher = open(file_path, 'rb').read()
     password = getpass.getpass('password> ')
-    dec = decrypt(open(file_path, 'rb').read(), password)
+    dec = decrypt(cipher, password)
     try:
         return json.loads(dec.decode())
     except Exception:
