@@ -102,4 +102,4 @@ class WebsocketBase:
             on_close=self._on_close,
             on_message=self._on_message,
             on_error=self._on_error)
-        self.ws.run_forever()
+        self.ws.run_forever(ping_interval=60)
