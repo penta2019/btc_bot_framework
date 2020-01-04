@@ -80,30 +80,6 @@ samples内のファイルを参照してください。
 <br>
 trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照してください。それぞれ 'botfw/base/trade.py' と 'botfw/base/orderbook.py' 内にあります。
 
-## プロジェクト構成
-**TODO**<br>
-* bin – 実行ファイル
-* botfw – フレームワーク本体: 取引所共通部分のディレクトリ(base)、取引所毎のディレクトリ(bitflyer, bitmex, ...)、etc
-* samples – 実行可能なサンプルプログラム
-* test – TODO
-
-![クラス構成](https://docs.google.com/drawings/d/e/2PACX-1vQ-_dnl_sqlpbMiK-RdnFiqHG1rWjP6kFax4v6OA9OkTGxKJn1kwFcKpmnjidZ6SDdw8qk4NiTMEOAp/pub?w=818&h=711)
-
-## コーディングのスタイルとポリシー
-* 多少コードが冗長になる場合でも、基本的には設計上の正しさを優先します。
-* フレームワーク部分（botfw）については以下の規則を適用します。
-    * pep8に準拠。ただし__init__.pyは例外
-    * コメントを含めて英語(askiiコードのみ)で記述。それ以外のsampleやgitログ等は自由。
-* メソッド名や引数の変数名とその順序、また定数変数（全部大文字の変数）の内部値は可能な限りccxtと揃えます。
-    * 'FX_BTC_JPY'(bitflyer) -> 'FX_BTC_JPY'(ccxt)
-    * 'BTC_JPY(bitflyer) -> 'BTC/JPY'(ccxt)
-    * 'BUY'(bitflyer), 'Buy'(bitmex), 'BUY'(binance) -> 'buy'(ccxt)
-    * 'LIMIT'(bitflyer), 'Limit'(bitmex), 'LIMIT'(binance) -> 'limit'(ccxt)
-
-* メソッド名の英単語は省略しませんが、変数名、及び引数名は意味の分かる範囲内で自由に省略します。
-* 日本語部分（サンプルコード、README）を含め、全角スペース全面禁止
-
-
 ## 今後の予定
 * 取引所の追加予定: liquid
 * サンプルロジックの追加（SFDbotを検討中）
