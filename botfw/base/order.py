@@ -110,10 +110,12 @@ class OrderManagerBase:
         return o
 
     def cancel_order(self, o):
-        self.api.cancel_order(o.id, o.symbol)
-        if o.state in [OPEN, WAIT_OPEN]:
-            o.state = WAIT_CANCEL
-            o.state_ts = time.time()
+        try:
+            self.api.cancel_order(o.id, o.symbol)
+        finally:
+            if o.state in [OPEN, WAIT_OPEN]:
+                o.state = WAIT_CANCEL
+                o.state_ts = time.time()
 
     def cancel_external_orders(self, symbol):
         for o in self.orders.values():
@@ -148,8 +150,6 @@ class OrderManagerBase:
             if o.state == WAIT_OPEN:
                 o.state, o.open_ts = OPEN, e.ts
                 self.log.warning('got an execution for a not "open" order')
-            if o.filled == o.amount:
-                o.state, o.close_ts = CLOSED, e.ts
         elif t == EVENT_OPEN:
             o.state, o.open_ts = OPEN, e.ts
         elif t == EVENT_CANCEL:
@@ -167,6 +167,9 @@ class OrderManagerBase:
             self.log.error(e.message)
         else:
             self.log.error(f'unhandled order event: {e}')
+
+        if o.filled == o.amount:
+            o.state, o.close_ts = CLOSED, e.ts
 
         if e.message and t != EVENT_ERROR:
             self.log.warn(e.message)
