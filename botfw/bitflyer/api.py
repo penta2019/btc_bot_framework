@@ -17,6 +17,10 @@ class BitflyerApi(ApiBase, ccxt.bitflyer):
             self, 'public_get_getboardstate')
         self.private_get_getpositions = getattr(
             self, 'private_get_getpositions')
+        self.private_post_cancelallchildorders = getattr(
+            self, 'private_post_cancelallchildorders')
+        self.private_get_getcollateral = getattr(
+            self, 'private_get_getcollateral')
 
     def fetch_status(self, params={'product_code': 'FX_BTC_JPY'}):
         res = self.public_get_getboardstate(params)
@@ -38,10 +42,9 @@ class BitflyerApi(ApiBase, ccxt.bitflyer):
         return total
 
     def fetch_collateral(self):
-        func = getattr(self, 'private_get_getcollateral')
-        return func()
+        return self.private_get_getcollateral()
 
     def cancel_all_order(self, symbol):
         market_id = self.market_id(symbol)
-        func = getattr(self, 'private_post_cancelallchildorders')
-        return func({'product_code': market_id})
+        return self.private_post_cancelallchildorders(
+            {'product_code': market_id})
