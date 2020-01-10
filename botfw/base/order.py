@@ -165,8 +165,10 @@ class OrderManagerBase:
         else:
             self.log.error(f'unhandled order event: {e}')
 
-        if o.filled == o.amount:
+        if o.filled >= o.amount:
             o.state, o.close_ts = CLOSED, e.ts
+            if o.filled > o.amount:
+                self.log.error('Filled size is larger than order amount')
 
         if e.message and t != EVENT_ERROR:
             self.log.warn(e.message)
