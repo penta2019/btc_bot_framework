@@ -453,8 +453,10 @@ class OrderGroupManagerBase:
         while og.orders:  # cancel all order
             for _, o in og.orders.items():
                 if o not in [CLOSED, CANCELED]:
-                    og.log.info(f'cancel remaining order')
-                    og.cancel_order(o)
+                    try:
+                        og.cancel_order(o)
+                    except Exception as e:
+                        og.log.error(e)
             time.sleep(3)
             og.remove_closed_orders()
         og.log.info('deleted')
