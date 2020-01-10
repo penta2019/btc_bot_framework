@@ -33,7 +33,7 @@ EVENT_ERROR = 'error'
 
 
 class Order(dict):
-    def __init__(self, symbol, type_, side, amount, price=0, params={}):
+    def __init__(self, symbol, type_, side, amount, price=None, params={}):
         super().__init__()
         self.__dict__ = self
 
@@ -91,7 +91,8 @@ class OrderManagerBase:
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
-    def create_order(self, symbol, type_, side, amount, price=0, params={}):
+    def create_order(
+            self, symbol, type_, side, amount, price=None, params={}):
         o = Order(symbol, type_, side, amount, price, params)
         return self.create_order_internal(o)
 
@@ -330,7 +331,7 @@ class OrderGroupBase:
         self.orders = {}
         self.event_cb = []
 
-    def create_order(self, type_, side, amount, price=0, params={}):
+    def create_order(self, type_, side, amount, price=None, params={}):
         o = Order(self.symbol, type_, side, amount, price, params)
         o.event_cb = self.__handle_event
         o.group_name = self.name

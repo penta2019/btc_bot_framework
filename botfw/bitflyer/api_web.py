@@ -17,13 +17,13 @@ class BitflyerApiWithWebOrder(BitflyerApi):
             login_id, password, account_id, device_id, device_token)
         self.api.login()
 
-    def create_order(self, symbol, type_, side, size, price=0, params={}):
+    def create_order(self, symbol, type_, side, amount, price=None, params={}):
         try:
             symbol = self.markets[symbol]['id']
             type_ = type_.upper()
             side = side.upper()
             res = self.api.send_order(
-                symbol, type_, side, size, price, **params)
+                symbol, type_, side, amount, price, **params)
             # {'status': 0,
             #  'error_message': None,
             #  'data': {'order_ref_id': 'JRF20180509-220225-476540'}}
@@ -44,7 +44,7 @@ class BitflyerApiWithWebOrder(BitflyerApi):
             if self.log.level <= logging.DEBUG:
                 self.log.debug(
                     f'request: sendorder '
-                    f'{symbol} {type_} {side} {size} {price} {params}')
+                    f'{symbol} {type_} {side} {amount} {price} {params}')
 
         st, err = res['status'], res['error_message']
         if st != 0:
@@ -151,7 +151,7 @@ class BitflyerWebApi:
         param = {'product_code': symbol}
         return self.get('/tickerdata', param)
 
-    def send_order(self, symbol, type_, side, size, price=0,
+    def send_order(self, symbol, type_, side, size, price=None,
                    minute_to_expire=43200, time_in_force='GTC'):
         param = {
             'product_code': symbol,
