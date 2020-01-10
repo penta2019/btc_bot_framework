@@ -351,9 +351,15 @@ class OrderGroupBase:
         return o
 
     def cancel_order(self, o):
-        self.manager.order_manager.cancel_order(o)
-        if self.order_log:
-            self.order_log.info(f'cancel order: {o.id}')
+        om = self.manager.order_manager
+        try:
+            om.api.cancel_order(o.id, o.symbol)
+        finally:
+            if o.state in [OPEN, WAIT_OPEN]:
+                o.state = WAIT_CANCEL
+                o.state_ts = time.time()
+            if self.order_log:
+                self.order_log.info(f'cancel order: {o.id}')
 
     def set_order_log(self, log):
         self.order_log = log
