@@ -506,12 +506,13 @@ class OrderGroupManagerBase:
                 continue
 
             if server == client:
-                self.position_diff = 0
+                conf.position_diff = 0
                 continue
 
             diff = decimal_add(client, -server)
             if diff == conf.position_diff:
                 # start thread to fix mismatch
+                # if previous diff and current diff matches
                 thread = threading.Thread(
                     name=f'fix_position@{conf.symbol}',
                     target=self.__fix_postion_mismatch,
