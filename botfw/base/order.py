@@ -83,9 +83,9 @@ class OrderManagerBase:
         self.last_update_ts = 0
         self.orders = {}  # {id: Order}
 
+        self.count_lock = 0
         self.__closed_orders = collections.deque()
         self.__event_queue = collections.deque()
-        self.__count_lock = 0
         self.__check_timer = Timer(60)  # timer for check_open_orders
         self.__last_check_tss = {}  # {symbol: last_check_open_orders_ts}
 
@@ -93,20 +93,16 @@ class OrderManagerBase:
 
     def create_order(
             self, symbol, type_, side, amount, price=None, params={}):
-        o = Order(symbol, type_, side, amount, price, params)
-        return self.create_order_internal(o)
-
-    def create_order_internal(self, o):
         try:
-            self.__count_lock += 1
-
+            self.count_lock += 1
             res = self.api.create_order(
-                o.symbol, o.type, o.side, o.amount, o.price, o.params)
+                symbol, type_, side, amount, price, params)
+            o = Order(symbol, type_, side, amount, price, params)
             o.id = res['id']
             o.state, o.state_ts = WAIT_OPEN, time.time()
             self.orders[o.id] = o
         finally:
-            self.__count_lock -= 1
+            self.count_lock -= 1
 
         return o
 
@@ -185,7 +181,7 @@ class OrderManagerBase:
             o.event_cb(e)
 
     def __process_queued_order_event(self):
-        if self.__count_lock:
+        if self.count_lock:
             return
 
         while self.__event_queue:
@@ -332,15 +328,26 @@ class OrderGroupBase:
         self.event_cb = []
 
     def create_order(self, type_, side, amount, price=None, params={}):
-        o = Order(self.symbol, type_, side, amount, price, params)
-        o.event_cb = self.__handle_event
-        o.group_name = self.name
-        o = self.manager.order_manager.create_order_internal(o)
-        self.orders[o.id] = o
-        if self.order_log:
-            self.order_log.info(
-                f'create order: {self.symbol} {type_} {side} '
-                f'{amount} {price} {params} => {o.id}')
+        om = self.manager.order_manager
+        o = None
+        try:
+            om.count_lock += 1
+            res = om.api.create_order(
+                self.symbol, type_, side, amount, price, params)
+            o = Order(self.symbol, type_, side, amount, price, params)
+            o.event_cb = self.__handle_event
+            o.group_name = self.name
+            o.id = res['id']
+            o.state, o.state_ts = WAIT_OPEN, time.time()
+            om.orders[o.id] = o
+            self.orders[o.id] = o
+        finally:
+            om.count_lock -= 1
+            if self.order_log:
+                self.order_log.info(
+                    f'create order: {self.symbol} {type_} {side} '
+                    f'{amount} {price} {params} => {o and o.id}')
+
         return o
 
     def cancel_order(self, o):
