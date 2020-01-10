@@ -107,12 +107,10 @@ class OrderManagerBase:
         return o
 
     def cancel_order(self, o):
-        try:
-            self.api.cancel_order(o.id, o.symbol)
-        finally:
-            if o.state in [OPEN, WAIT_OPEN]:
-                o.state = WAIT_CANCEL
-                o.state_ts = time.time()
+        self.api.cancel_order(o.id, o.symbol)
+        if o.state in [OPEN, WAIT_OPEN]:
+            o.state = WAIT_CANCEL
+            o.state_ts = time.time()
 
     def cancel_external_orders(self, symbol):
         for o in self.orders.values():
@@ -353,13 +351,9 @@ class OrderGroupBase:
         return o
 
     def cancel_order(self, o):
-        om = self.manager.order_manager
         try:
-            om.api.cancel_order(o.id, o.symbol)
+            self.manager.order_manager.cancel_order(o)
         finally:
-            if o.state in [OPEN, WAIT_OPEN]:
-                o.state = WAIT_CANCEL
-                o.state_ts = time.time()
             if self.order_log:
                 self.order_log.info(f'cancel order: {o.id}')
 
@@ -458,9 +452,10 @@ class OrderGroupManagerBase:
             action_filter, check_interval, update_margin)
 
     def _worker_destroy_order_group(self, og):
+        og.remove_closed_orders()
         while og.orders:  # cancel all order
             for _, o in og.orders.items():
-                if o not in [CLOSED, CANCELED]:
+                if o.state not in [CLOSED, CANCELED]:
                     try:
                         og.cancel_order(o)
                     except Exception as e:
