@@ -142,9 +142,10 @@ class OrderManagerBase:
         st = o.state
         if t == EVENT_EXECUTION:
             o.filled, o.trade_ts = decimal_add(o.filled, abs(e.size)), now
+            if o.state in [CLOSED, CANCELED]:
+                self.log.warning('got an execution for a closed order')
             if o.state == WAIT_OPEN:
                 o.state, o.open_ts = OPEN, e.ts
-                self.log.warning('got an execution for a not "open" order')
         elif t == EVENT_OPEN:
             o.state, o.open_ts = OPEN, e.ts
         elif t == EVENT_CANCEL:
