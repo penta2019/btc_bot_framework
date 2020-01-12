@@ -20,8 +20,21 @@ def test_trade(t, trace=False, log_level=logging.DEBUG):
 
 class TradeBase:
     def __init__(self):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.ltp = None
         self.cb = []
+
+    def wait_initialized(self, timeout=60):
+        ts = time.time()
+        while True:
+            if not self.ltp:
+                if time.time() - ts > timeout:
+                    self.log.error(f'timeout({timeout}s)')
+                else:
+                    self.log.info('waiting to be initialized')
+            else:
+                return
+            time.sleep(1)
 
     def add_callback(self, cb):
         self.cb.append(cb)

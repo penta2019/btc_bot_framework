@@ -48,6 +48,7 @@ og.set_order_log(log)  # 自前で注文のログを表示する場合、ここ�
 # og.add_event_callback(lambda e: print(e.__dict__))  # 注文イベント取得時のコールバック関数
 
 
+# 約定データの遅延時間測定
 def trade_cb(ts, price, size):
     global delay
     delay = time.time() - ts
@@ -56,10 +57,9 @@ def trade_cb(ts, price, size):
 delay = 0
 trade.add_callback(trade_cb)
 
-# 最終取引価格を取得するまで待機
-while not trade.ltp:
-    print(f'initializing ltp...')
-    time.sleep(1)
+# tradeとorderbookが初期化される(最初のデータが届く)まで待機
+trade.wait_initialized()
+orderbook.wait_initialized()
 
 
 if __name__ == '__main__':

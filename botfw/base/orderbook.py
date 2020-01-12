@@ -27,12 +27,25 @@ def test_orderbook(ob, trace=False, log_level=logging.DEBUG):
 
 class OrderbookBase:
     def __init__(self):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.cb = []
         self.init()
 
     def init(self):
         self.sd_bids = SortedDict()
         self.sd_asks = SortedDict()
+
+    def wait_initialized(self, timeout=60):
+        ts = time.time()
+        while True:
+            if not self.asks() or not self.bids():
+                if time.time() - ts > timeout:
+                    self.log.error(f'timeout({timeout}s)')
+                else:
+                    self.log.info('waiting to be initialized')
+            else:
+                return
+            time.sleep(1)
 
     def bids(self):
         return self.sd_bids.values()
