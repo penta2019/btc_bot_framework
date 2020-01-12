@@ -11,6 +11,6 @@ from .bitflyer.exchange import Bitflyer
 from .bitmex.exchange import Bitmex
 from .binance.exchange import Binance, BinanceFuture
 
-from .etc.util import setup_logger
+from .etc.util import setup_logger, load_encrypted_json_file
 from .etc.cmd import Cmd, CmdClient, CmdServer
 from .etc.loader import DynamicThreadClassLoader, Loadable
