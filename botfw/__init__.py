@@ -7,6 +7,9 @@ from .base.order import (
     EVENT_CLOSE, EVENT_ERROR
 )
 
+from .base.trade import test_trade
+from .base.orderbook import test_orderbook
+
 from .bitflyer.exchange import Bitflyer
 from .bitmex.exchange import Bitmex
 from .binance.exchange import Binance, BinanceFuture

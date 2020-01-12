@@ -1,3 +1,2 @@
-from botfw.base.trade import test_trade
-from botfw.binance.trade import BinanceFutureTrade
-test_trade(BinanceFutureTrade('BTC/USDT'))
+import botfw
+botfw.test_trade(botfw.BinanceFuture.Trade('BTC/USDT'))

@@ -1,3 +1,2 @@
-from botfw.base.orderbook import test_orderbook
-from botfw.bitflyer.orderbook import BitflyerOrderbook
-test_orderbook(BitflyerOrderbook('FX_BTC_JPY'))
+import botfw
+botfw.test_orderbook(botfw.Bitflyer.Orderbook('FX_BTC_JPY'))
