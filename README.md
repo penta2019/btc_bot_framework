@@ -5,12 +5,19 @@ Pythonによる暗号通貨の高頻度取引bot向けフレームワークで�
 * websocketを最大限利用することでAPI制限とデータ取得遅延の問題を緩和すること。
 * 取引所毎のwebsocketの仕様の差異を吸収すること。
 * Bot開発において頻繁に出現する処理を再利用可能な形でモジュール化すること。
-<br>
+
+定数値(の内部値)はccxtとの一貫性や親和性のため取引所固有の値ではなく、ccxtに準拠しています。
+
+* 'FX_BTC_JPY'(bitflyer) -> 'FX_BTC_JPY'(ccxt)
+* 'BTC_JPY(bitflyer) -> 'BTC/JPY'(ccxt)
+* 'BUY'(bitflyer), 'Buy'(bitmex), 'BUY'(binance) -> 'buy'(ccxt)
+* 'LIMIT'(bitflyer), 'Limit'(bitmex), 'LIMIT'(binance) -> 'limit'(ccxt)
+
 現状、bitflyer, bitmex, binanceの実装がおおよそ完了しています。<br>
 メイン通貨のみの簡単な動作確認しかできていないので、まだバグが多く残っているものと思われます。<br>
 コードを参考にする程度に留めるか、実行する際はご自身で十分に検証を行ってください。<br>
 どうしても発注を行いたい場合、証拠金を十分に減らした上で
-'FX_BTC_JPY'(bitflyer), 'XBTUSD'(bitmex), 'BTCUSDT'(binance future)をご利用ください。<br>
+'FX_BTC_JPY'(bitflyer), 'BTC/USD'(bitmex), 'BTC/USDT'(binance future)をご利用ください。<br>
 その他の商品については全く確認ができていないので、デバッグ以外の目的で実行しないでください。<br>
 プログラムの実行はあくまで自己責任です。不具合等によって損失が生じた場合でもこちらでは責任を負えません。<br>
 
@@ -45,7 +52,7 @@ Pythonによる暗号通貨の高頻度取引bot向けフレームワークで�
 ### 方法1: そもそもインストールしない<br>
 プロジェクト内に直接コードを書いて、プロジェクトルートからモジュールとして実行する場合は<br>
 特にインストール作業は必要ありません。<br>
-例えば、samples/bitflyer/orderbook.pyなら以下のように実行できます。
+例えば、samples/bitflyer/orderbook.pyなら以下のように実行できます。(\_\_init\_\_.pyが必要かも)
 ```
 $ python3 -m samples.bitflyer.orderbook
 ```
