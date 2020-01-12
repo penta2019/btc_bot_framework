@@ -14,7 +14,7 @@ class BinanceOrderbook(OrderbookBase):
 
     def __after_open(self):
         self.init()
-        market_id = ccxt_binance.market_id(self.symbol)
+        market_id = ccxt_binance().market_id(self.symbol)
         ch = f'{market_id.lower()}@depth'
         self.ws.subscribe(ch, self.__on_message)
 

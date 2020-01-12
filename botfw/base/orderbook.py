@@ -7,11 +7,11 @@ from sortedcontainers import SortedDict
 from ..etc.util import setup_logger
 
 
-def test_orderbook(ob, trace=False, log_level=logging.DEBUG):
+def test_orderbook(ob, trace=False, log_level=logging.INFO):
     setup_logger(log_level)
     if trace:
         websocket.enableTrace(True)
-    time.sleep(1)
+    ob.wait_initialized()
     try:
         while True:
             for p, s in ob.asks()[10::-1]:

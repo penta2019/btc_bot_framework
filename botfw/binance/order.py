@@ -17,7 +17,7 @@ class BinanceOrderManager(od.OrderManagerBase):
 
     def _generate_order_object(self, e):
         o = e.info['o']
-        symbol = ccxt_binance.markets_by_id[o['s']]['symbol']
+        symbol = ccxt_binance().markets_by_id[o['s']]['symbol']
         return od.Order(
             symbol, o['o'].lower(), o['S'].lower(),
             float(o['q']), float(o['p']))

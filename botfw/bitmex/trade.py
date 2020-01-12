@@ -12,7 +12,7 @@ class BitmexTrade(TradeBase):
         self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
-        market_id = ccxt_bitmex.market_id(self.symbol)
+        market_id = ccxt_bitmex().market_id(self.symbol)
         ch = f'trade:{market_id}'
         self.ws.subscribe(ch, self.__on_message)
 

@@ -2,8 +2,17 @@ import ccxt
 from ..base.api import ApiBase
 from ..etc.util import decimal_add
 
-ccxt_bitflyer = ccxt.bitflyer()
-ccxt_bitflyer.load_markets()
+_ccxt_bitflyer = None
+
+
+def ccxt_bitflyer():
+    global _ccxt_bitflyer
+    if _ccxt_bitflyer:
+        return _ccxt_bitflyer
+
+    _ccxt_bitflyer = ccxt.bitflyer()
+    _ccxt_bitflyer.load_markets()
+    return _ccxt_bitflyer
 
 
 class BitflyerApi(ApiBase, ccxt.bitflyer):

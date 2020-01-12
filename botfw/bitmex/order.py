@@ -9,7 +9,7 @@ class BitmexOrderManager(od.OrderManagerBase):
 
     def _generate_order_object(self, e):
         info = e.info
-        symbol = ccxt_bitmex.markets_by_id[info['symbol']]['symbol']
+        symbol = ccxt_bitmex().markets_by_id[info['symbol']]['symbol']
         return od.Order(
             symbol, info['ordType'].lower(), info['side'].lower(),
             info['orderQty'], info['price'])

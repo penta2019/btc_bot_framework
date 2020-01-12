@@ -6,7 +6,7 @@ import websocket
 from ..etc.util import setup_logger
 
 
-def test_trade(t, trace=False, log_level=logging.DEBUG):
+def test_trade(t, trace=False, log_level=logging.INFO):
     setup_logger(log_level)
     if trace:
         websocket.enableTrace(True)
