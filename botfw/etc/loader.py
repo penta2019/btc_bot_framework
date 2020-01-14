@@ -58,7 +58,8 @@ class DynamicThreadClassLoader:
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
         self.init_args = {}
-        self.classes = {}  # [ClassInfo]
+        self.classes = {}  # {(module_name, class_name): ClassInfo}
+        self.classes_cache = {}
 
     def set_args(self, init_args):
         '''Add arguments passed to loaded class'''
@@ -72,16 +73,19 @@ class DynamicThreadClassLoader:
         key = (module_name, class_name)
         ci = self.classes.get(key)
         if ci:
-            if ci.instance:
-                raise Exception(f'"{class_name}" is already running.')
-            else:
-                module = importlib.reload(ci.module)
+            raise Exception(f'"{class_name}" is already running.')
+
+        ci = self.classes_cache.get(key)
+        if ci:
+            module = importlib.reload(ci.module)
         else:
             module = importlib.import_module(module_name)
 
         instance = getattr(module, class_name)(self.init_args)
         instance.start()
-        self.classes[key] = ClassInfo(module, instance)
+        ci = ClassInfo(module, instance)
+        self.classes[key] = ci
+        self.classes_cache[key] = ci
         self.log.info(f'start "{class_name}"')
 
         return True
@@ -111,6 +115,7 @@ class DynamicThreadClassLoader:
                 return False
 
         ci.instance = None
+        del self.classes[key]
 
         if hasattr(instance, 'on_stop'):
             try:
@@ -122,6 +127,5 @@ class DynamicThreadClassLoader:
 
         return True
 
-    def show_loaded_classes(self):
-        '''Show loaded class names'''
-        return ' '.join(self.classes.keys())
+    def get_running_classes(self):
+        return list(self.classes.keys())
