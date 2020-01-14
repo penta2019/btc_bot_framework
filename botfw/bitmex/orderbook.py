@@ -1,6 +1,6 @@
 from ..base.orderbook import OrderbookBase
 from .websocket import BitmexWebsocket
-from .api import ccxt_bitmex
+from .api import BitmexApi
 
 
 class BitmexOrderbook(OrderbookBase):
@@ -12,7 +12,7 @@ class BitmexOrderbook(OrderbookBase):
 
     def __after_open(self):
         self.init()
-        market_id = ccxt_bitmex().market_id(self.symbol)
+        market_id = BitmexApi.instance().market_id(self.symbol)
         ch = f'orderBookL2_25:{market_id}'
         self.ws.subscribe(ch, self.__on_message)
 

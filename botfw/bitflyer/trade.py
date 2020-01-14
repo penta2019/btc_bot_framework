@@ -1,6 +1,6 @@
 from ..base.trade import TradeBase
 from .websocket import BitflyerWebsocket
-from .api import ccxt_bitflyer
+from .api import BitflyerApi
 from ..etc.util import unix_time_from_ISO8601Z
 
 
@@ -12,7 +12,7 @@ class BitflyerTrade(TradeBase):
         self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
-        market_id = ccxt_bitflyer().market_id(self.symbol)
+        market_id = BitflyerApi.instance().market_id(self.symbol)
         ch = f'lightning_executions_{market_id}'
         self.ws.subscribe(ch, self.__on_message)
 

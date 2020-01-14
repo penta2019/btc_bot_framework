@@ -1,6 +1,6 @@
 from ..base.trade import TradeBase
 from .websocket import BitmexWebsocket
-from .api import ccxt_bitmex
+from .api import BitmexApi
 from ..etc.util import unix_time_from_ISO8601Z
 
 
@@ -12,7 +12,7 @@ class BitmexTrade(TradeBase):
         self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
-        market_id = ccxt_bitmex().market_id(self.symbol)
+        market_id = BitmexApi.instance().market_id(self.symbol)
         ch = f'trade:{market_id}'
         self.ws.subscribe(ch, self.__on_message)
 

@@ -1,5 +1,5 @@
 from ..base import order as od
-from .api import ccxt_bitflyer
+from .api import BitflyerApi
 from ..etc.util import unix_time_from_ISO8601Z, decimal_add
 
 
@@ -13,7 +13,8 @@ class BitflyerOrderManager(od.OrderManagerBase):
             self.log.warning(f'event for unknown order: {info}')
             return None
 
-        symbol = ccxt_bitflyer().markets_by_id[info['product_code']]['symbol']
+        api = BitflyerApi.instance()
+        symbol = api.markets_by_id[info['product_code']]['symbol']
         return od.Order(
             symbol, info['child_order_type'].lower(), info['side'].lower(),
             info['size'], info['price'])

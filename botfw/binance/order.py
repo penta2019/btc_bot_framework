@@ -1,7 +1,7 @@
 from ..base import order as od
 from .websocket_user_data import (
     BinanceWebsocketUserData, BinanceFutureWebsocketUserData)
-from .api import ccxt_binance
+from .api import BinanceApi
 
 
 class BinanceOrderManager(od.OrderManagerBase):
@@ -17,7 +17,8 @@ class BinanceOrderManager(od.OrderManagerBase):
 
     def _generate_order_object(self, e):
         o = e.info['o']
-        symbol = ccxt_binance().markets_by_id[o['s']]['symbol']
+        api = BinanceApi.instance()
+        symbol = api.markets_by_id[o['s']]['symbol']
         return od.Order(
             symbol, o['o'].lower(), o['S'].lower(),
             float(o['q']), float(o['p']))

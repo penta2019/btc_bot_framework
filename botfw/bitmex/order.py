@@ -1,5 +1,5 @@
 from ..base import order as od
-from .api import ccxt_bitmex
+from .api import BitmexApi
 from ..etc.util import unix_time_from_ISO8601Z
 
 
@@ -9,7 +9,8 @@ class BitmexOrderManager(od.OrderManagerBase):
 
     def _generate_order_object(self, e):
         info = e.info
-        symbol = ccxt_bitmex().markets_by_id[info['symbol']]['symbol']
+        api = BitmexApi.instance()
+        symbol = api.markets_by_id[info['symbol']]['symbol']
         return od.Order(
             symbol, info['ordType'].lower(), info['side'].lower(),
             info['orderQty'], info['price'])

@@ -1,4 +1,5 @@
 import logging
+import threading
 
 from ..etc.util import run_forever_nonblocking
 
@@ -6,6 +7,16 @@ from ..etc.util import run_forever_nonblocking
 class ApiBase:
     MAX_API_CAPACITY = 60
     API_PER_SECOND = 1
+    _instance = None
+    _lock = threading.Lock()
+
+    @classmethod
+    def instance(cls):
+        with cls._lock:
+            if not cls._instance:
+                cls._instance = cls()
+                cls._instance.load_markets()
+        return cls._instance
 
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)

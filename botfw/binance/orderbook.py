@@ -1,6 +1,6 @@
 from ..base.orderbook import OrderbookBase
 from .websocket import BinanceWebsocket, BinanceFutureWebsocket
-from .api import ccxt_binance
+from .api import BinanceApi
 
 
 class BinanceOrderbook(OrderbookBase):
@@ -14,7 +14,7 @@ class BinanceOrderbook(OrderbookBase):
 
     def __after_open(self):
         self.init()
-        market_id = ccxt_binance().market_id(self.symbol)
+        market_id = BinanceApi.instance().market_id(self.symbol)
         ch = f'{market_id.lower()}@depth'
         self.ws.subscribe(ch, self.__on_message)
 

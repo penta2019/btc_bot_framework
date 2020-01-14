@@ -2,14 +2,14 @@ from sortedcontainers import SortedDict
 
 from ..base.orderbook import OrderbookBase
 from .websocket import BitflyerWebsocket
-from .api import ccxt_bitflyer
+from .api import BitflyerApi
 
 
 class BitflyerOrderbook(OrderbookBase):
     def __init__(self, symbol, ws=None):
         super().__init__()
         self.symbol = symbol
-        market_id = ccxt_bitflyer().market_id(symbol)
+        market_id = BitflyerApi.instance().market_id(symbol)
 
         self.ws = ws or BitflyerWebsocket()
         self.ws.add_after_open_callback(self.__after_open)

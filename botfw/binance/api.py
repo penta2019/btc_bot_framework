@@ -1,23 +1,11 @@
 import ccxt
 from ..base.api import ApiBase
 
-_ccxt_binance = None
-
-
-def ccxt_binance():
-    global _ccxt_binance
-    if _ccxt_binance:
-        return _ccxt_binance
-
-    _ccxt_binance = ccxt.binance()
-    _ccxt_binance.load_markets()
-    return _ccxt_binance
-
 
 class BinanceApi(ApiBase, ccxt.binance):
     FUTURE = False
 
-    def __init__(self, ccxt_config):
+    def __init__(self, ccxt_config={}):
         if self.FUTURE:
             ccxt_config.setdefault('options', {})['defaultType'] = 'future'
         ApiBase.__init__(self)
