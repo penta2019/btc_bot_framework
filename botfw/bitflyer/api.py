@@ -4,6 +4,8 @@ from ..etc.util import decimal_add
 
 
 class BitflyerApi(ApiBase, ccxt.bitflyer):
+    _ccxt_class = ccxt.bitflyer
+
     def __init__(self, ccxt_config={}):
         ApiBase.__init__(self)
         ccxt.bitflyer.__init__(self, ccxt_config)

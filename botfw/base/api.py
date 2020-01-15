@@ -9,12 +9,13 @@ class ApiBase:
     API_PER_SECOND = 1
     _instance = None
     _lock = threading.Lock()
+    _ccxt_class = object
 
     @classmethod
-    def instance(cls):
+    def ccxt_instance(cls):
         with cls._lock:
             if not cls._instance:
-                cls._instance = cls()
+                cls._instance = cls._ccxt_class()
                 cls._instance.load_markets()
         return cls._instance
 

@@ -13,7 +13,7 @@ class BitflyerOrderManager(od.OrderManagerBase):
             self.log.warning(f'event for unknown order: {info}')
             return None
 
-        api = BitflyerApi.instance()
+        api = BitflyerApi.ccxt_instance()
         symbol = api.markets_by_id[info['product_code']]['symbol']
         return od.Order(
             symbol, info['child_order_type'].lower(), info['side'].lower(),

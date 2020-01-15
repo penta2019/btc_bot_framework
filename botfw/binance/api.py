@@ -4,6 +4,7 @@ from ..base.api import ApiBase
 
 class BinanceApi(ApiBase, ccxt.binance):
     FUTURE = False
+    _ccxt_class = ccxt.binance
 
     def __init__(self, ccxt_config={}):
         if self.FUTURE:

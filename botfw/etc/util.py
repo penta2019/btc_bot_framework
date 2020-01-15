@@ -66,6 +66,7 @@ def run_forever_nonblocking(cb, log, sleep, exception_sleep=5):
         args=(cb, log, sleep, exception_sleep))
     thread.daemon = True
     thread.start()
+    return thread
 
 
 class StopRunForever(BaseException):
