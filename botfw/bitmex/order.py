@@ -50,7 +50,7 @@ class BitmexPositionGroup(od.PositionGroupBase):
 
     def update(self, price, size, info):
         super().update(price, size)
-        commission = info['commission']
+        commission = info['commission'] * size
         self.commission += commission
         self.pnl -= commission
 
