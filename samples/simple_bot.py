@@ -47,6 +47,12 @@ og = ex.create_order_group(SYMBOL, 'test1')
 og.set_order_log(log)  # 自前で注文のログを表示する場合、ここは不要
 # og.add_event_callback(lambda e: print(e.__dict__))  # 注文イベント取得時のコールバック関数
 
+# 外部操作・デバッグ用のUDPコマンドラインインターフェース
+cmd = fw.Cmd(globals())
+cmd_server = fw.CmdServer(50000)
+cmd_server.register_command(cmd.eval)
+cmd_server.register_command(cmd.exec)
+
 
 # 約定データの遅延時間測定
 def trade_cb(ts, price, size):
