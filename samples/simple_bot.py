@@ -38,7 +38,7 @@ ws = ex.websocket
 om = ex.order_manager
 ogm = ex.order_group_manager
 
-# ポジション自動修復。
+# ポジション自動修復。 BF現物は非対応（手数料がポジションから引かれる為）
 # ogm.set_position_sync_config(SYMBOL, MIN_SIZE, MIN_SIZE * 100)
 
 trade = ex.create_trade(SYMBOL)
