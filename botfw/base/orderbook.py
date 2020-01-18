@@ -36,12 +36,15 @@ class OrderbookBase:
 
     def wait_initialized(self, timeout=60):
         ts = time.time()
+        count = 0
         while True:
             if not self.asks() or not self.bids():
                 if time.time() - ts > timeout:
                     self.log.error(f'timeout({timeout}s)')
                 else:
-                    self.log.info('waiting to be initialized')
+                    count += 1
+                    if count % 5 == 0:
+                        self.log.info('waiting to be initialized')
             else:
                 return
             time.sleep(1)

@@ -4,6 +4,8 @@ from .api import BitmexApi
 
 
 class BitmexOrderbook(OrderbookBase):
+    CHANNEL = 'orderBookL2'
+
     def __init__(self, symbol, ws=None):
         super().__init__()
         self.symbol = symbol
@@ -13,7 +15,7 @@ class BitmexOrderbook(OrderbookBase):
     def __after_open(self):
         self.init()
         market_id = BitmexApi.ccxt_instance().market_id(self.symbol)
-        ch = f'orderBookL2_25:{market_id}'
+        ch = f'{self.CHANNEL}:{market_id}'
         self.ws.subscribe(ch, self.__on_message)
 
     def __on_message(self, msg):
