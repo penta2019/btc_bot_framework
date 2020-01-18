@@ -2,10 +2,9 @@ import importlib
 import logging
 import traceback
 import threading
-import time
 import ctypes
 
-from .util import no_traceback_exceptions
+from .util import run_forever, StopRunForever
 
 
 def send_execption(thread, exception):
@@ -13,16 +12,12 @@ def send_execption(thread, exception):
         ctypes.c_long(thread.ident), ctypes.py_object(exception))
 
 
-class StopThread(Exception):
-    pass
-
-
 class Loadable(threading.Thread):
-    def __init__(self, sleep=0, exception_sleep=5):
+    def __init__(self):
         super().__init__()
         self.log = logging.getLogger(self.__class__.__name__)
-        self._sleep = sleep
-        self._exception_sleep = exception_sleep
+        self._sleep = 0
+        self._exception_sleep = 5
         self.__stop = False
 
     def main(self):  # to be overrided
@@ -35,21 +30,13 @@ class Loadable(threading.Thread):
         self.__stop = True
 
     def run(self):
-        while True:
-            try:
-                self.main()
-            except StopThread:
-                break
-            except no_traceback_exceptions as e:
-                self.log.error(f'{type(e).__name__}: {e}')
-            except Exception:
-                self.log.error(traceback.format_exc())
-                time.sleep(self._exception_sleep)
+        run_forever(
+            self.__worker, self.log, self._sleep, self._exception_sleep)
 
-            if self.__stop:
-                break
-
-            time.sleep(self._sleep)
+    def __worker(self):
+        self.main()
+        if self.__stop:
+            raise StopRunForever
 
 
 class ClassInfo:
@@ -112,7 +99,7 @@ class DynamicThreadClassLoader:
         if instance.is_alive():
             self.log.warning(f'{class_name} is not responding. '
                              'Sending exception: StopThread')
-            send_execption(instance, StopThread)
+            send_execption(instance, StopRunForever)
             instance.join(3)
             if instance.is_alive():
                 self.log.error(f'failed to stop "{class_name}"')
