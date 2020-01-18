@@ -45,7 +45,7 @@ def load_encrypted_json_file(file_path):
         raise Exception('Wrong key')
 
 
-def run_forever(cb, log, sleep, exception_sleep=5):
+def run_forever(cb, log, sleep=0, exception_sleep=5):
     while True:
         try:
             cb()
@@ -53,7 +53,6 @@ def run_forever(cb, log, sleep, exception_sleep=5):
             break
         except no_traceback_exceptions as e:
             log.error(f'{type(e).__name__}: {e}')
-            time.sleep(exception_sleep)
         except Exception:
             log.error(traceback.format_exc())
             time.sleep(exception_sleep)
