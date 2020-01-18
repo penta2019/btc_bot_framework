@@ -40,6 +40,7 @@ cmd_server.register_command(test.show_data)  # 返信が必要ない場合は re
 cmd = botfw.Cmd(globals())
 cmd_server.register_command(cmd.eval)  # あらゆる処理を実行できるコマンド。主にデバッグ用
 cmd_server.register_command(cmd.exec)  # 同上。返り値がNoneになる代わりに代入や複数文の実行が可能
+cmd_server.register_command(cmd.print, log=False)  # eval同様。返り値をpprintでフォーマットする
 
 input()  # 終了しないように入力待ちで待機
 

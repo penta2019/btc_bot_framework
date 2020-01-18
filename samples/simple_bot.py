@@ -52,6 +52,7 @@ cmd = fw.Cmd(globals())
 cmd_server = fw.CmdServer(50000)
 cmd_server.register_command(cmd.eval)
 cmd_server.register_command(cmd.exec)
+cmd_server.register_command(cmd.print, log=False)
 
 
 # 約定データの遅延時間測定

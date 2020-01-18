@@ -2,6 +2,7 @@ import logging
 import traceback
 import socket
 import inspect
+import pprint
 
 from .util import run_forever_nonblocking
 
@@ -103,3 +104,6 @@ class Cmd:
 
     def exec(self, *args):
         return exec(' '.join(args).replace(r'\s', ' '), self.globals)
+
+    def print(self, *args):
+        return pprint.pformat(self.eval(*args))
