@@ -10,7 +10,7 @@ import traceback
 import ccxt
 from cryptography.fernet import Fernet
 
-no_traceback_errors = (ccxt.NetworkError)
+no_traceback_exceptions = (ccxt.NetworkError)
 
 
 def unix_time_from_ISO8601Z(date):
@@ -51,7 +51,7 @@ def run_forever(cb, log, sleep, exception_sleep=5):
             cb()
         except StopRunForever:
             break
-        except no_traceback_errors as e:
+        except no_traceback_exceptions as e:
             log.error(f'{type(e).__name__}: {e}')
             time.sleep(exception_sleep)
         except Exception:

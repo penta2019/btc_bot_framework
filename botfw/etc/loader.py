@@ -5,6 +5,8 @@ import threading
 import time
 import ctypes
 
+from .util import no_traceback_exceptions
+
 
 def send_execption(thread, exception):
     ctypes.pythonapi.PyThreadState_SetAsyncExc(
@@ -38,6 +40,8 @@ class Loadable(threading.Thread):
                 self.main()
             except StopThread:
                 break
+            except no_traceback_exceptions as e:
+                self.log.error(f'{type(e).__name__}: {e}')
             except Exception:
                 self.log.error(traceback.format_exc())
                 time.sleep(self._exception_sleep)
