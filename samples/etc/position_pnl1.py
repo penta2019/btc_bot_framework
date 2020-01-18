@@ -1,4 +1,5 @@
-# bitflyerの様にポジションサイズをBTCで計算する場合のサンプル
+# ポジションサイズがBase通貨(仮想通貨)で表現される場合の損益計算。
+# 例：bitflyer, binance
 
 from botfw.base.order import PositionGroupBase
 

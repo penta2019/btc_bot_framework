@@ -1,4 +1,5 @@
-# bitmexのようにポジションサイズを基軸通貨で計算する場合のサンプル
+# ポジションサイズがQuote通貨(法定通貨)で表現される場合の損益計算。
+# 例：bitmex(USD)
 
 from botfw.base.order import PositionGroupBase
 
