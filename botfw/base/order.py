@@ -83,7 +83,7 @@ class OrderManagerBase:
         self.last_update_ts = 0
         self.orders = {}  # {id: Order}
 
-        self.count_lock = 0
+        self.count_lock = collections.deque()
         self.__closed_orders = collections.deque()
         self.__event_queue = collections.deque()
         self.__check_timer = Timer(60)  # timer for check_open_orders
@@ -94,7 +94,7 @@ class OrderManagerBase:
     def create_order(
             self, symbol, type_, side, amount, price=None, params={}):
         try:
-            self.count_lock += 1
+            self.count_lock.append(None)
             res = self.api.create_order(
                 symbol, type_, side, amount, price, params)
             o = Order(symbol, type_, side, amount, price, params)
@@ -102,7 +102,7 @@ class OrderManagerBase:
             o.state, o.state_ts = WAIT_OPEN, time.time()
             self.orders[o.id] = o
         finally:
-            self.count_lock -= 1
+            self.count_lock.pop()
 
         return o
 
@@ -332,7 +332,7 @@ class OrderGroupBase:
         om = self.manager.order_manager
         o = None
         try:
-            om.count_lock += 1
+            om.count_lock.append(None)
             res = om.api.create_order(
                 self.symbol, type_, side, amount, price, params)
             o = Order(self.symbol, type_, side, amount, price, params)
@@ -343,7 +343,7 @@ class OrderGroupBase:
             om.orders[o.id] = o
             self.orders[o.id] = o
         finally:
-            om.count_lock -= 1
+            om.count_lock.pop()
             if self.order_log:
                 self.order_log.info(
                     f'create order: {self.symbol} {type_} {side} '
