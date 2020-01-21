@@ -34,9 +34,9 @@ class Loadable(threading.Thread):
             self.__worker, self.log, self._sleep, self._exception_sleep)
 
     def __worker(self):
-        self.main()
         if self.__stop:
             raise StopRunForever
+        self.main()
 
 
 class ClassInfo:
