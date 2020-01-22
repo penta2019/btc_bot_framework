@@ -1,14 +1,11 @@
 import time
 import datetime
 import decimal
-import json
-import getpass
 import logging
 import threading
 import traceback
 
 import ccxt
-from cryptography.fernet import Fernet
 
 no_traceback_exceptions = (ccxt.NetworkError)
 
@@ -33,16 +30,6 @@ def setup_logger(level=logging.INFO):
     handler = logging.StreamHandler()
     handler.setFormatter(fmt)
     log.addHandler(handler)
-
-
-def load_encrypted_json_file(file_path):
-    cipher = open(file_path, 'rb').read()
-    key = getpass.getpass('key> ')
-    dec = Fernet(key).decrypt(cipher)
-    try:
-        return json.loads(dec.decode())
-    except Exception:
-        raise Exception('Wrong key')
 
 
 def run_forever(cb, log, sleep=0, exception_sleep=5):
