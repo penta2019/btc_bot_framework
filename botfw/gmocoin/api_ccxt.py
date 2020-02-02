@@ -31,15 +31,20 @@ def decimal_add(x0, x1):
 # order_id = res['id']
 
 # res = gmo.fetch_open_orders('BTC_JPY')
-# print(res)
 
 # res = gmo.cancel_order(order_id)
-# print(res)
 
 # ### custom exchange API (not unified ccxt API)
-# # see also(https://api.coin.z.com/docs/?python)
 # res = gmo.private_get_openpositions(params={'symbol': 'BTC_JPY'})
-# print(res)
+
+# # websocket key
+# res = gmo.private_post_ws_auth()
+# websocket_key = res['data']
+
+# # keep-alive websocket key
+# res = gmo.private_put_ws_auth(params={'token': websocket_key})
+
+# # see also(https://api.coin.z.com/docs/?python)
 
 
 class CcxtGmocoinApi(ccxt.Exchange):
@@ -98,7 +103,14 @@ class CcxtGmocoinApi(ccxt.Exchange):
                         'closeOrder',
                         'closeBulkOrder',
                         'changeLosscutPrice',
+                        'ws-auth',
                     ],
+                    'put': [
+                        'ws-auth',
+                    ],
+                    'delete': [
+                        'ws-auth',
+                    ]
                 },
             },
             'fees': {
@@ -370,13 +382,16 @@ class CcxtGmocoinApi(ccxt.Exchange):
             url_param = ''
         url = f'{self.urls["api"]}/{api}{path}{url_param}'
 
+        body = json.dumps(params) if method != 'GET' else None
+
         if api == 'private':
             self.check_required_credentials()
             timestamp = str(int(time.time()) * 1000)
-            body = json.dumps(params) if method != 'GET' else ''
+
+            body_sign = body if method == 'POST' else ''
             sign = hmac.new(
                 self.secret.encode(),
-                f'{timestamp}{method}{path}{body}'.encode(),
+                f'{timestamp}{method}{path}{body_sign}'.encode(),
                 hashlib.sha256).hexdigest()
             headers = {
                 'API-KEY': self.apiKey,
@@ -384,7 +399,9 @@ class CcxtGmocoinApi(ccxt.Exchange):
                 'API-SIGN': sign,
             }
 
-        return {'url': url, 'method': method, 'body': body, 'headers': headers}
+        return {
+            'url': url, 'method': method,
+            'body': body, 'headers': headers}
 
     # silence linter
     if False:
