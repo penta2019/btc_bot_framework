@@ -25,7 +25,7 @@ class BinanceApi(ApiBase, ccxt.binance):
                 return float(pos['positionAmt'])
         raise Exception('symbol not found')
 
-    def listen_key(self, method='POST'):
+    def websocket_key(self, method='POST'):
         # POST: create new
         # PUT: keep alive (every 30 minutes)
         # DELETE: close

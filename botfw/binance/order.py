@@ -1,14 +1,14 @@
 from ..base import order as od
-from .websocket_user_data import (
-    BinanceWebsocketUserData, BinanceFutureWebsocketUserData)
+from .websocket import (
+    BinanceWebsocketPrivate, BinanceFutureWebsocketPrivate)
 from .api import BinanceApi
 
 
 class BinanceOrderManager(od.OrderManagerBase):
-    WebsocketUserData = BinanceWebsocketUserData
+    WebsocketPrivate = BinanceWebsocketPrivate
 
     def __init__(self, api, ws=None, retention=60):
-        wsud = self.WebsocketUserData(api)  # ws is unused
+        wsud = self.WebsocketPrivate(api)  # ws is unused
         wsud.add_callback(self.__on_events)
         super().__init__(api, wsud, retention)
 
@@ -91,7 +91,7 @@ class BinanceOrderGroupManager(od.OrderGroupManagerBase):
 
 # Future
 class BinanceFutureOrderManager(BinanceOrderManager):
-    WebsocketUserData = BinanceFutureWebsocketUserData
+    WebsocketPrivate = BinanceFutureWebsocketPrivate
 
 
 class BinanceFuturePositionGroup(BinancePositionGroup):

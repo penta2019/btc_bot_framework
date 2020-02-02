@@ -9,15 +9,12 @@ class BinanceWebsocket(WebsocketBase):
 
     def __init__(self, key=None, secret=None):
         super().__init__(self.ENDPOINT)
-        self.__key = key
-        self.__secret = secret
         self.__next_id = 1
         self.__request_table = {}
         self.__ch_cb_map = {}
 
-        if self.__key and self.__secret:
-            self.add_after_open_callback(
-                lambda: self.authenticate(self.__key, self.__secret))
+        if key and secret:
+            self.log.warning('key and secret are ignored.')
 
     def command(self, op, args=[], description=None):
         id_ = self.__next_id
@@ -38,9 +35,6 @@ class BinanceWebsocket(WebsocketBase):
         key = (symbol, event)
         self.__ch_cb_map[(key[0].upper(), key[1])] = cb
         return key
-
-    def authenticate(self, key, secret):
-        pass
 
     def _on_message(self, msg):
         try:
@@ -67,4 +61,36 @@ class BinanceWebsocket(WebsocketBase):
 
 
 class BinanceFutureWebsocket(BinanceWebsocket):
+    ENDPOINT = 'wss://fstream.binance.com/ws'
+
+
+class BinanceWebsocketPrivate(WebsocketBase):
+    ENDPOINT = 'wss://stream.binance.com:9443/ws'
+
+    def __init__(self, api):
+        self.__api = api
+        self.__cb = []
+        super().__init__(None)
+
+    def keep_alive(self):
+        self.__api.websocket_key('PUT')
+
+    def add_callback(self, cb):
+        self.__cb.append(cb)
+
+    def _on_init(self):
+        res = self.__api.websocket_key()
+        key = res['listenKey']
+        self.url = f'{self.ENDPOINT}/{key}'
+
+    def _on_open(self):
+        super()._on_open()
+        self._set_auth_result(True)
+
+    def _on_message(self, msg):
+        msg = json.loads(msg)
+        self._run_callbacks(self.__cb, msg)
+
+
+class BinanceFutureWebsocketPrivate(BinanceWebsocketPrivate):
     ENDPOINT = 'wss://fstream.binance.com/ws'
