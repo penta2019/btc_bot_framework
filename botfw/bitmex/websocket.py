@@ -14,18 +14,18 @@ class BitmexWebsocket(WebsocketBase):
         super().__init__(self.ENDPOINT)
         self.__key = key
         self.__secret = secret
-        self.__request_table = {}  # (msg, cb, description)
+        self.__request_table = {}  # (msg, cb)
         self.__ch_cb_map = {}
 
         if self.__key and self.__secret:
             self.add_after_open_callback(
                 lambda: self.authenticate(self.__key, self.__secret))
 
-    def command(self, op, args=[], cb=None, description=None):
+    def command(self, op, args=[], cb=None):
         msg = {"op": op, "args": args}
         self.send(msg)
         id_ = json.dumps(msg)
-        self.__request_table[id_] = (msg, cb, description)
+        self.__request_table[id_] = (msg, cb)
         return id_
 
     def subscribe(self, ch, cb):
@@ -60,8 +60,7 @@ class BitmexWebsocket(WebsocketBase):
                 self.log.debug(f'revc: {msg}')
                 if 'request' in msg:
                     id_ = json.dumps(msg['request'])
-                    smsg, cb, desc = self.__request_table[id_]
-                    req = desc or smsg
+                    req, cb = self.__request_table[id_]
                     if 'success' in msg:
                         res = msg['success']
                         self.log.info(f'{req} => {res}')

@@ -16,19 +16,19 @@ class BitflyerWebsocket(WebsocketBase):
         self.__key = key
         self.__secret = secret
         self.__next_id = 1
-        self.__request_table = {}  # (msg, cb, description)
+        self.__request_table = {}  # (msg, cb)
         self.__ch_cb_map = {}
 
         if self.__key and self.__secret:
             self.add_after_open_callback(
                 lambda: self.authenticate(self.__key, self.__secret))
 
-    def command(self, op, args=[], cb=None, description=None):
+    def command(self, op, args=[], cb=None):
         id_ = self.__next_id
         self.__next_id += 1
         msg = {'method': op, 'params': args, 'id': id_}
         self.send(msg)
-        self.__request_table[id_] = (msg, cb, description)
+        self.__request_table[id_] = (msg, cb)
         return id_
 
     def subscribe(self, ch, cb):
@@ -62,8 +62,7 @@ class BitflyerWebsocket(WebsocketBase):
             else:
                 self.log.debug(f'recv: {msg}')
                 if 'id' in msg:
-                    smsg, cb, desc = self.__request_table[msg['id']]
-                    req = desc or smsg
+                    req, cb = self.__request_table[msg['id']]
                     if 'result' in msg:
                         res = msg['result']
                         self.log.info(f'{req} => {res}')
