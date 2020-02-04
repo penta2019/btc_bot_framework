@@ -42,7 +42,7 @@ class BitmexOrderManager(od.OrderManagerBase):
 
 
 class BitmexPositionGroup(od.PositionGroupBase):
-    SIZE_IN_FIAT = True
+    SIZE_IN_QUOTE = True
 
     def __init__(self):
         super().__init__()

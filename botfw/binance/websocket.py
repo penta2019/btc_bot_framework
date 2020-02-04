@@ -71,7 +71,7 @@ class BinanceWebsocketPrivate(WebsocketBase):
     ENDPOINT = 'wss://stream.binance.com:9443/ws'
 
     def __init__(self, api):
-        self.__api = api
+        self.__api = api  # _on_init() may be called in super().__init__()
         self.__cb = []
         super().__init__(None)
 
