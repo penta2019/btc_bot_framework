@@ -13,6 +13,7 @@ from .base.orderbook import test_orderbook
 from .bitflyer.exchange import Bitflyer
 from .bitmex.exchange import Bitmex
 from .binance.exchange import Binance, BinanceFuture
+from .gmocoin.exchange import Gmocoin
 
 from .etc.util import setup_logger
 from .etc.cmd import Cmd, CmdClient, CmdServer

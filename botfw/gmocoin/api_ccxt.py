@@ -34,10 +34,10 @@ def decimal_add(x0, x1):
 
 # res = gmo.cancel_order(order_id)
 
-# ### custom exchange API (not unified ccxt API)
+# ### custom exchange API (not unified ccxt API) ###
 # res = gmo.private_get_openpositions(params={'symbol': 'BTC_JPY'})
 
-# # websocket key
+# # websocket key (valid for 60 minutes)
 # res = gmo.private_post_ws_auth()
 # websocket_key = res['data']
 
@@ -341,7 +341,8 @@ class CcxtGmocoinApi(ccxt.Exchange):
         orders = res['data'].get('list', [])
         return self.parse_orders(orders, market, since, limit)
 
-    # def fetch_closed_orders(self, symbol=None, since=None, limit=100, params={}):
+    # def fetch_closed_orders(
+    #         self, symbol=None, since=None, limit=100, params={}):
     #     pass
 
     def fetch_order(self, id_, symbol=None, params={}):
@@ -399,9 +400,7 @@ class CcxtGmocoinApi(ccxt.Exchange):
                 'API-SIGN': sign,
             }
 
-        return {
-            'url': url, 'method': method,
-            'body': body, 'headers': headers}
+        return {'url': url, 'method': method, 'body': body, 'headers': headers}
 
     # silence linter
     if False:
