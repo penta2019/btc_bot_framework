@@ -30,7 +30,7 @@ class BitflyerOrderManager(od.OrderManagerBase):
             if t == 'EXECUTION':
                 oe.type = od.EVENT_EXECUTION
                 oe.price = e['price']
-                oe.size = e['size'] if e['side'] == 'BUY' else -e['size']
+                oe.size = -e['size'] if e['side'] == 'SELL' else e['size']
             elif t == 'ORDER':
                 oe.type = od.EVENT_OPEN
             elif t in ['CANCEL', 'EXPIRE']:

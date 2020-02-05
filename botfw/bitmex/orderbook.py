@@ -38,7 +38,7 @@ class BitmexOrderbook(OrderbookBase):
         self._trigger_callback()
 
     def __sd_and_key(self, data):
-        if data['side'] == 'Buy':
-            return self.sd_bids, data['id']
+        if data['side'] == 'Sell':
+            return self.sd_bids, -data['id']
         else:
-            return self.sd_asks, -data['id']
+            return self.sd_asks, data['id']

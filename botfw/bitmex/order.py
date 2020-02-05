@@ -30,7 +30,7 @@ class BitmexOrderManager(od.OrderManagerBase):
             if size:
                 oe.type = od.EVENT_EXECUTION
                 oe.price = e['lastPx']
-                oe.size = size if e['side'] == 'Buy' else -size
+                oe.size = -size if e['side'] == 'Sell' else size
             elif t == 'New':
                 oe.type = od.EVENT_OPEN
             elif t == 'Filled':
