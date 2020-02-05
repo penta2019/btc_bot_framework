@@ -266,14 +266,15 @@ class CcxtGmocoinApi(ccxt.Exchange):
             'symbol': symbol,
             'side': side.upper(),
             'executionType': type_.upper(),
-            'price': str(price),
             'size': str(amount),
         }
-        result = getattr(self, 'private_post_order')(
+        if price:
+            request['price'] = str(price)
+        res = getattr(self, 'private_post_order')(
             self.extend(request, params))
-        id_ = result.get('data')
+        id_ = res.get('data')
         return {
-            'info': result,
+            'info': res,
             'id': id_,
         }
 
