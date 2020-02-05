@@ -272,10 +272,12 @@ class CcxtGmocoinApi(ccxt.Exchange):
             request['price'] = str(price)
         res = getattr(self, 'private_post_order')(
             self.extend(request, params))
-        id_ = res.get('data')
+        if res['status'] != 0:
+            raise ccxt.InvalidOrder(res['messages'])
+
         return {
             'info': res,
-            'id': id_,
+            'id': res['data'],
         }
 
     def cancel_order(self, id_, symbol=None, params={}):
