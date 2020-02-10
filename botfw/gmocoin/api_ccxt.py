@@ -123,6 +123,8 @@ class CcxtGmocoinApi(ccxt.Exchange):
 
     def fetch_markets(self, params={}):
         res = getattr(self, 'public_get_ticker')()
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
         result = []
         for market in res['data']:
             id_ = market['symbol']
@@ -167,6 +169,8 @@ class CcxtGmocoinApi(ccxt.Exchange):
     def fetch_balance(self, params={}):
         self.load_markets()
         res = getattr(self, 'private_get_account_assets')()
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
         result = {'info': res}
         for balance in res['data']:
             currency_id = balance['symbol']
@@ -184,6 +188,8 @@ class CcxtGmocoinApi(ccxt.Exchange):
         }
         res = getattr(self, 'public_get_orderbooks')(
             self.extend(request, params))
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
         orderbook = res['data']
         return self.parse_order_book(
             orderbook, None, 'bids', 'asks', 'price', 'size')
@@ -195,6 +201,8 @@ class CcxtGmocoinApi(ccxt.Exchange):
         }
         res = getattr(self, 'public_get_ticker')(
             self.extend(request, params))
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
         ticker = res['data'][0]
         timestamp = self.parse8601(ticker['timestamp'])
         last = float(ticker['last'])
@@ -257,6 +265,9 @@ class CcxtGmocoinApi(ccxt.Exchange):
         }
         res = getattr(self, 'public_get_trades')(
             self.extend(request, params))
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
+
         trades = res['data'].get('list', [])
         return self.parse_trades(trades, market, since, limit)
 
@@ -285,8 +296,11 @@ class CcxtGmocoinApi(ccxt.Exchange):
         request = {
             'orderId': id_,
         }
-        return getattr(self, 'private_post_cancelorder')(
+        res = getattr(self, 'private_post_cancelorder')(
             self.extend(request, params))
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
+        return res
 
     def parse_order_status(self, status):
         statuses = {
@@ -341,6 +355,8 @@ class CcxtGmocoinApi(ccxt.Exchange):
         }
         res = getattr(self, 'private_get_activeorders')(
             self.extend(request, params))
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
         orders = res['data'].get('list', [])
         return self.parse_orders(orders, market, since, limit)
 
@@ -355,6 +371,8 @@ class CcxtGmocoinApi(ccxt.Exchange):
         }
         res = getattr(self, 'private_get_orders')(
             self.extend(request, params))
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
         orders = res['data'].get('list')
         if not orders:
             raise ccxt.OrderNotFound(f'{self.id} No order found with id {id_}')
@@ -371,6 +389,8 @@ class CcxtGmocoinApi(ccxt.Exchange):
         }
         res = getattr(self, 'private_get_latestexecutions')(
             self.extend(request, params))
+        if res['status'] != 0:
+            raise ccxt.BaseError(res['messages'])
         trades = res['data'].get('list', [])
         return self.parse_trades(trades, market, since, limit)
 
