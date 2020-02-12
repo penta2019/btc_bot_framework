@@ -278,7 +278,7 @@ class OrderManagerBase:
             self.orders[o.id] = o
         except Exception as e:
             elog = log or self.log
-            elog.error(log.error(f'{type(e).__name__}: {e}'))
+            elog.error(f'{type(e).__name__}: {e}')
         finally:
             self.pending_orders.remove(o)
             if log:
@@ -292,7 +292,7 @@ class OrderManagerBase:
             f.result()
         except Exception as e:
             elog = log or self.log
-            elog.error(log.error(f'{type(e).__name__}: {e}'))
+            elog.error(f'{type(e).__name__}: {e}')
         finally:
             if log:
                 log.info(f'cancel order: {o.id}')
