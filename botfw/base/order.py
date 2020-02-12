@@ -428,14 +428,7 @@ class OrderGroupManagerBase:
         if name not in self.order_groups:
             self.log.error('Failed to destroy order group. '
                            f'Unknown order group "{name}". ')
-
         og = self.order_groups.pop(name)
-
-        thread = threading.Thread(
-            name=f'clean_{og.name}', target=self._worker_destroy_order_group,
-            args=[og])
-        thread.daemon = True
-        thread.start()
 
     def get_total_position(self, symbol):
         total = 0
@@ -457,19 +450,6 @@ class OrderGroupManagerBase:
         self.position_sync_configs[symbol] = PositionSyncConfig(
             symbol, min_lot, max_lot, position_func,
             action_filter, check_interval, update_margin)
-
-    def _worker_destroy_order_group(self, og):
-        og.remove_closed_orders()
-        while og.orders:  # cancel all order
-            for _, o in og.orders.items():
-                if o.state not in [CLOSED, CANCELED]:
-                    try:
-                        og.cancel_order(o)
-                    except Exception as e:
-                        og.log.error(e)
-            time.sleep(3)
-            og.remove_closed_orders()
-        og.log.info('deleted')
 
     def __update_unrealized_pnl(self):
         for og in self.order_groups.values():
