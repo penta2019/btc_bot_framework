@@ -39,6 +39,6 @@ class BitmexOrderbook(OrderbookBase):
 
     def __sd_and_key(self, data):
         if data['side'] == 'Sell':
-            return self.sd_bids, -data['id']
+            return self.sd_asks, -data['id']
         else:
-            return self.sd_asks, data['id']
+            return self.sd_bids, data['id']
