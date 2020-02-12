@@ -1,10 +1,11 @@
+from ..etc.util import decimal_add, run_forever_nonblocking, Timer
+import asyncio
 import time
 import logging
 import collections
 import threading
 import traceback
-
-from ..etc.util import decimal_add, run_forever_nonblocking, Timer
+import functools
 
 
 # Order Side
@@ -82,35 +83,46 @@ class OrderManagerBase:
         self.retention = retention  # retantion time of closed(canceled) order
         self.last_update_ts = 0
         self.orders = {}  # {id: Order}
+        self.pending_orders = []
 
-        self.count_lock = collections.deque()
         self.__closed_orders = collections.deque()
         self.__event_queue = collections.deque()
         self.__check_timer = Timer(60)  # timer for check_open_orders
         self.__last_check_tss = {}  # {symbol: last_check_open_orders_ts}
 
+        # for asynchronous create_order(), cancel_order()
+        self.__loop = asyncio.new_event_loop()
+        self.__thread = threading.Thread(
+            name='event_loop', target=self.__loop.run_forever)
+        self.__thread.daemon = True
+        self.__thread.start()
+
         run_forever_nonblocking(self.__worker, self.log, 1)
 
     def create_order(
-            self, symbol, type_, side, amount, price=None, params={}):
-        try:
-            self.count_lock.append(None)
-            res = self.api.create_order(
-                symbol, type_, side, amount, price, params)
-            o = Order(symbol, type_, side, amount, price, params)
-            o.id = res['id']
-            o.state, o.state_ts = WAIT_OPEN, time.time()
-            self.orders[o.id] = o
-        finally:
-            self.count_lock.pop()
+            self, symbol, type_, side, amount, price=None, params={},
+            event_cb=None, log=None):
+        o = Order(symbol, type_, side, amount, price, params)
+        o.state, o.state_ts = WAIT_OPEN, time.time()
+        o.event_cb = event_cb
+        self.pending_orders.append(o)
 
+        f = self.__loop.run_in_executor(
+            None, self.api.create_order,
+            symbol, type_, side, amount, price, params)
+        f.add_done_callback(functools.partial(
+            self.__handle_create_order, o, log))
         return o
 
-    def cancel_order(self, o):
-        self.api.cancel_order(o.id, o.symbol)
+    def cancel_order(self, o, log=None):
         if o.state in [OPEN, WAIT_OPEN]:
-            o.state = WAIT_CANCEL
-            o.state_ts = time.time()
+            o.state, o.state_ts = WAIT_CANCEL, time.time()
+
+        f = self.__loop.run_in_executor(
+            None, self.api.cancel_order,
+            o.id, o.symbol)
+        f.add_done_callback(functools.partial(
+            self.__handle_cancel_order, o, log))
 
     def cancel_external_orders(self, symbol):
         for o in self.orders.values():
@@ -182,7 +194,7 @@ class OrderManagerBase:
             o.event_cb(e)
 
     def __process_queued_order_event(self):
-        if self.count_lock:
+        if self.pending_orders:
             return
 
         while self.__event_queue:
@@ -259,6 +271,32 @@ class OrderManagerBase:
                 o.state, o.state_ts = CANCELED, now
                 self.__closed_orders.append(o)
 
+    def __handle_create_order(self, o, log, f):
+        try:
+            res = f.result()
+            o.id = res['id']
+            self.orders[o.id] = o
+        except Exception as e:
+            elog = log or self.log
+            elog.error(log.error(f'{type(e).__name__}: {e}'))
+        finally:
+            self.pending_orders.remove(o)
+            if log:
+                log.info(
+                    f'create order: {o.symbol} {o.type} {o.side} '
+                    f'{o.amount} {o.price} {o.params} => {o.id}')
+
+    def __handle_cancel_order(self, o, log, f):
+        log = log or self.log
+        try:
+            f.result()
+        except Exception as e:
+            elog = log or self.log
+            elog.error(log.error(f'{type(e).__name__}: {e}'))
+        finally:
+            if log:
+                log.info(f'cancel order: {o.id}')
+
     def __worker(self):
         self.__process_queued_order_event()
         self.__remove_closed_orders()
@@ -325,38 +363,17 @@ class OrderGroupBase:
         self.retention = 60
         self.order_log = None
         self.position_group = self.PositionGroup()
-        self.orders = {}
         self.event_cb = []
 
     def create_order(self, type_, side, amount, price=None, params={}):
-        om = self.manager.order_manager
-        o = None
-        try:
-            om.count_lock.append(None)
-            res = om.api.create_order(
-                self.symbol, type_, side, amount, price, params)
-            o = Order(self.symbol, type_, side, amount, price, params)
-            o.event_cb = self.__handle_event
-            o.group_name = self.name
-            o.id = res['id']
-            o.state, o.state_ts = WAIT_OPEN, time.time()
-            om.orders[o.id] = o
-            self.orders[o.id] = o
-        finally:
-            om.count_lock.pop()
-            if self.order_log:
-                self.order_log.info(
-                    f'create order: {self.symbol} {type_} {side} '
-                    f'{amount} {price} {params} => {o and o.id}')
-
+        o = self.manager.order_manager.create_order(
+            self.symbol, type_, side, amount, price, params,
+            self.__handle_event, self.order_log)
+        o.group_name = self.name
         return o
 
     def cancel_order(self, o):
-        try:
-            self.manager.order_manager.cancel_order(o)
-        finally:
-            if self.order_log:
-                self.order_log.info(f'cancel order: {o.id}')
+        self.manager.order_manager.cancel_order(o, self.order_log)
 
     def set_order_log(self, log):
         self.order_log = log
@@ -369,17 +386,6 @@ class OrderGroupBase:
 
     def remove_event_callback(self, cb):
         self.event_cb.remove(cb)
-
-    def remove_closed_orders(self, retention=0):
-        now = time.time()
-        rm_id = []
-        for id_, o in self.orders.items():
-            if o.state in [CLOSED, CANCELED]:
-                if now - o.state_ts > retention:
-                    rm_id.append(id_)
-
-        for id_ in rm_id:
-            del self.orders[id_]
 
     def __handle_event(self, e):
         if e.type == EVENT_EXECUTION:
@@ -465,10 +471,6 @@ class OrderGroupManagerBase:
             og.remove_closed_orders()
         og.log.info('deleted')
 
-    def __remove_closed_orders(self):
-        for og in self.order_groups.values():
-            og.remove_closed_orders(og.retention)
-
     def __update_unrealized_pnl(self):
         for og in self.order_groups.values():
             t = self.trades.get(og.symbol)
@@ -545,9 +547,10 @@ class OrderGroupManagerBase:
         max_lot = conf.max_lot
         pg = og.position_group
 
+        o = None
         while pg.position != diff:
             try:
-                if not og.orders:
+                if not o or o.state in [CLOSED, CANCELED]:
                     size = decimal_add(diff, -pg.position)
                     if size < -max_lot:
                         size = -max_lot
@@ -559,12 +562,10 @@ class OrderGroupManagerBase:
                         size = max_lot
 
                     if size > 0:
-                        og.create_order(MARKET, BUY, size)
+                        o = og.create_order(MARKET, BUY, size)
                     else:
-                        og.create_order(MARKET, SELL, -size)
-
-                    time.sleep(3)
-                    og.remove_closed_orders()
+                        o = og.create_order(MARKET, SELL, -size)
+                time.sleep(3)
             except Exception:
                 og.log.error(traceback.format_exc())
                 time.sleep(10)
@@ -578,7 +579,6 @@ class OrderGroupManagerBase:
             f'finished to fix position mismatch for {conf.symbol}.')
 
     def __worker(self):
-        self.__remove_closed_orders()
         self.__update_unrealized_pnl()
         self.__check_position_integrity()
 
