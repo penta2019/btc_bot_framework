@@ -6,6 +6,10 @@
 # websocketサーバのポートとデバッグ用のポートを指定して実行
 # $ python3 trade_proxy.py 51000 51001
 
+# クライアント側のon_openで購読したいチャンネルの情報を送信
+# ws.send('{"exchange": "Bitflyer", "symbol": "FX_BTC_JPY"}')
+# 複数チャンネルには対応していないのでチャンネルごとにwebsocketを生成してください。
+
 import logging
 import json
 import sys
@@ -17,13 +21,14 @@ import botfw as fw
 log = logging.getLogger()
 fw.setup_logger()
 
+# デバッグ用
 cmd = fw.Cmd(globals())
 cmd_server = fw.CmdServer(int(sys.argv[2]))
 cmd_server.register_command(cmd.eval)
 cmd_server.register_command(cmd.exec)
 cmd_server.register_command(cmd.print, log=False)
 
-clients = {}  # {client: info}
+clients = {}  # {client: ((exchange, symbol), callback)}
 trades = {}  # {(exchange, symbol)}
 
 
