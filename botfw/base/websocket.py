@@ -5,7 +5,7 @@ import traceback
 
 import websocket
 
-from ..etc.util import run_forever_nonblocking
+from ..etc.util import run_forever_nonblocking, StopRunForever
 
 
 class WebsocketBase:
@@ -13,6 +13,7 @@ class WebsocketBase:
         self.log = logging.getLogger(self.__class__.__name__)
         self.url = url
         self.ws = None
+        self.running = True
 
         self.is_open = False
         self.is_auth = None  # None: before auth, True: success, False: failed
@@ -21,6 +22,10 @@ class WebsocketBase:
         self.__after_auth_cb = []
 
         run_forever_nonblocking(self.__worker, self.log, 3)
+
+    def stop(self):
+        self.running = False
+        self.ws.close()
 
     def add_after_open_callback(self, cb):
         self.__after_open_cb.append(cb)
@@ -103,3 +108,6 @@ class WebsocketBase:
             on_message=self._on_message,
             on_error=self._on_error)
         self.ws.run_forever(ping_interval=60)
+
+        if not self.running:
+            raise StopRunForever
