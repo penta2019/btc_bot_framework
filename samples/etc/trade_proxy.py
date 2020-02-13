@@ -18,12 +18,14 @@ from websocket_server import WebsocketServer
 
 import botfw as fw
 
+server_port, debug_port = sys.argv[1:]
+
 log = logging.getLogger()
 fw.setup_logger()
 
 # デバッグ用
 cmd = fw.Cmd(globals())
-cmd_server = fw.CmdServer(int(sys.argv[2]))
+cmd_server = fw.CmdServer(int(debug_port))
 cmd_server.register_command(cmd.eval)
 cmd_server.register_command(cmd.exec)
 cmd_server.register_command(cmd.print, log=False)
@@ -82,7 +84,7 @@ def on_message_received(client, server, message):
 
 
 if __name__ == "__main__":
-    server = WebsocketServer(port=int(sys.argv[1]), host='127.0.0.1')
+    server = WebsocketServer(port=int(server_port), host='127.0.0.1')
     server.set_fn_new_client(on_new_client)
     server.set_fn_client_left(on_client_left)
     server.set_fn_message_received(on_message_received)

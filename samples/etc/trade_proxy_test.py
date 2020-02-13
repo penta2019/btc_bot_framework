@@ -8,16 +8,10 @@ import sys
 
 import websocket
 
-
-def on_open(ws):
-    ws.send(json.dumps(
-        {'exchange': sys.argv[2], 'symbol': sys.argv[3]}))
-
-
-if __name__ == '__main__':
-    websocket.enableTrace(False)
-    ws = websocket.WebSocketApp(
-        f'ws://127.0.0.1:{sys.argv[1]}',
-        on_open=on_open,
-        on_message=lambda ws, msg: print(msg))
-    ws.run_forever()
+port, exchange, symbol = sys.argv[1:]
+ws = websocket.WebSocketApp(
+    f'ws://127.0.0.1:{port}',
+    on_open=lambda ws: ws.send(json.dumps(
+        {'exchange': exchange, 'symbol': symbol})),
+    on_message=lambda ws, msg: print(msg))
+ws.run_forever()
