@@ -414,7 +414,7 @@ class OrderGroupManagerBase:
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
-    def create_order_group(self, symbol, name='NoName'):
+    def create_order_group(self, symbol, name):
         if name in self.order_groups:
             self.log.error('Failed to create order group. '
                            f'Order group "{name}" already exists.')
