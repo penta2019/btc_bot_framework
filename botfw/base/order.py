@@ -277,6 +277,7 @@ class OrderManagerBase:
             o.id = res['id']
             self.orders[o.id] = o
         except Exception as e:
+            o.state, o.state_ts = CANCELED, time.time()
             elog = log or self.log
             elog.error(f'{type(e).__name__}: {e}')
         finally:
@@ -291,6 +292,8 @@ class OrderManagerBase:
         try:
             f.result()
         except Exception as e:
+            if o.state == WAIT_CANCEL:
+                o.state, o.state_ts = OPEN, time.time()
             elog = log or self.log
             elog.error(f'{type(e).__name__}: {e}')
         finally:
