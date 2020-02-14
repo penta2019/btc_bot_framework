@@ -363,7 +363,6 @@ class OrderGroupBase:
         self.manager = manager
         self.symbol = symbol
         self.name = name
-        self.retention = 60
         self.order_log = None
         self.position_group = self.PositionGroup()
         self.event_cb = []
@@ -378,11 +377,15 @@ class OrderGroupBase:
     def cancel_order(self, o):
         self.manager.order_manager.cancel_order(o, self.order_log)
 
+    def get_orders(self):
+        orders = {}
+        for o in self.manager.order_manager.orders.values():
+            if o.get('group_name') == self.name:
+                orders[o.id] = o
+        return orders
+
     def set_order_log(self, log):
         self.order_log = log
-
-    def set_closed_order_retention(self, sec):
-        self.retention = sec
 
     def add_event_callback(self, cb):
         self.event_cb.append(cb)
@@ -404,13 +407,12 @@ class OrderGroupBase:
 class OrderGroupManagerBase:
     OrderGroup = OrderGroupBase
 
-    def __init__(self, order_manager, retention=60, trades={}):
+    def __init__(self, order_manager, trades={}):
         self.log = logging.getLogger(self.__class__.__name__)
         self.order_manager = order_manager
         self.order_groups = {}
         self.position_sync_configs = {}
         self.trades = trades  # {symbol:Trade}, used to update unrealized pnl
-        self.retention = retention
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
@@ -421,7 +423,6 @@ class OrderGroupManagerBase:
             return None
 
         og = self.OrderGroup(self, symbol, name)
-        og.set_closed_order_retention(self.retention)
         self.order_groups[name] = og
         og.log.info('created')
         return og
