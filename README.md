@@ -1,4 +1,4 @@
-# CCWF - CryptoCurrency Websocket Framework (改名予定)
+# 暗号通貨高頻度取引bot用websocketベースフレームワーク
 ## 概要
 Pythonによる暗号通貨の高頻度取引bot向けフレームワークです。<br>
 このフレームワークの役割は主に以下の３つです。
@@ -91,6 +91,7 @@ trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照�
 
 ## 今後の予定
 * GMOCoin 注文周りの実装
+* Liquid 注文周りの実装
 
 ## お願い
 一人で色々考えて作るのは結構大変なので、コミッターやデバッガー、改善案を出してくれる人を募集しています。<br>
