@@ -91,7 +91,7 @@ if __name__ == '__main__':
             log.info(f'api count: {api.count}')
 
             # pprint.pprint(om.orders)  # すべての注文の表示
-            # pprint.pprint(og.orders)  # OrderGroupに属する注文の表示
+            # pprint.pprint(og.get_orders())  # OrderGroupに属する注文の表示
 
             # サーバーが稼働中であることを確認
             if api.fetch_status()['status'] != 'ok':
