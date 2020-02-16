@@ -52,12 +52,13 @@ class BitflyerPositionGroup(od.PositionGroupBase):
 
     def update(self, price, size, info):
         super().update(price, size)
-        commission, sfd = info['commission'], info['sfd']
-        self.position = decimal_add(self.position, -commission)
-        c = price * commission
-        self.commission += c
-        self.sfd += sfd
-        self.pnl += -c + sfd
+        if info:
+            commission, sfd = info['commission'], info['sfd']
+            self.position = decimal_add(self.position, -commission)
+            c = price * commission
+            self.commission += c
+            self.sfd += sfd
+            self.pnl += -c + sfd
 
 
 class BitflyerOrderGroup(od.OrderGroupBase):
