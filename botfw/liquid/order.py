@@ -20,12 +20,7 @@ class LiquidOrderManager(od.OrderManagerBase):
 
 
 class LiquidPositionGroup(od.PositionGroupBase):
-    def __init__(self):
-        super().__init__()
-        self.commission = 0  # total commissions
-
-    def update(self, price, size, info):
-        super().update(price, size)
+    pass
 
 
 class LiquidOrderGroup(od.OrderGroupBase):

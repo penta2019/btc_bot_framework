@@ -31,6 +31,7 @@ class BitmexOrderManager(od.OrderManagerBase):
                 oe.type = od.EVENT_EXECUTION
                 oe.price = e['lastPx']
                 oe.size = -size if e['side'] == 'Sell' else size
+                oe.commission = e['commission'] * size
             elif t == 'New':
                 oe.type = od.EVENT_OPEN
             elif t == 'Filled':
@@ -43,17 +44,6 @@ class BitmexOrderManager(od.OrderManagerBase):
 
 class BitmexPositionGroup(od.PositionGroupBase):
     SIZE_IN_QUOTE = True
-
-    def __init__(self):
-        super().__init__()
-        self.commission = 0  # total commissions in USD
-
-    def update(self, price, size, info):
-        super().update(price, size)
-        if info:
-            commission = info['commission'] * abs(size)
-            self.commission += commission
-            self.pnl -= commission
 
 
 class BitmexOrderGroup(od.OrderGroupBase):

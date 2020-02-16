@@ -32,20 +32,12 @@ class GmocoinOrderManager(od.OrderManagerBase):
         oe.price = float(e['executionPrice'])
         size = float(e['executionSize'])
         oe.size = -size if e['side'] == 'SELL' else size
+        oe.commission = 0  # TODO
         self._handle_order_event(oe)
 
 
 class GmocoinPositionGroup(od.PositionGroupBase):
-    def __init__(self):
-        super().__init__()
-        # self.commission = 0  # total commissions in USD
-
-    def update(self, price, size, info):
-        super().update(price, size)
-        # if info:
-        #     commission = info['commission'] * abs(size)
-        #     self.commission += commission
-        #     self.pnl -= commission
+    pass
 
 
 class GmocoinOrderGroup(od.OrderGroupBase):

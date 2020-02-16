@@ -31,6 +31,8 @@ class BitflyerOrderManager(od.OrderManagerBase):
                 oe.type = od.EVENT_EXECUTION
                 oe.price = e['price']
                 oe.size = -e['size'] if e['side'] == 'SELL' else e['size']
+                oe.commission = oe.price * e['commission']
+                # commission is in "base" currency
             elif t == 'ORDER':
                 oe.type = od.EVENT_OPEN
             elif t in ['CANCEL', 'EXPIRE']:
@@ -48,17 +50,14 @@ class BitflyerPositionGroup(od.PositionGroupBase):
     def __init__(self):
         super().__init__()
         self.sfd = 0  # total sfd
-        self.commission = 0  # total commissions in JPY
 
-    def update(self, price, size, info):
-        super().update(price, size)
+    def update(self, price, size, commission, info):
+        super().update(price, size, commission)
         if info:
-            commission, sfd = info['commission'], info['sfd']
-            self.position = decimal_add(self.position, -commission)
-            c = price * commission
-            self.commission += c
+            self.position = decimal_add(self.position, -info['commission'])
+            sfd = info['sfd']
             self.sfd += sfd
-            self.pnl += -c + sfd
+            self.pnl += sfd
 
 
 class BitflyerOrderGroup(od.OrderGroupBase):

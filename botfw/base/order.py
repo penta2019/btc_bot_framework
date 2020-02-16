@@ -67,8 +67,9 @@ class OrderEvent(dict):
         self.id = None
         self.ts = None
         self.type = None
-        self.price = None    # EVENT_EXECUTION
-        self.size = None     # EVENT_EXECUTION buy: size > 0, sell: size < 0
+        self.price = None       # EVENT_EXECUTION
+        self.size = None        # EVENT_EXECUTION buy: size > 0, sell: size < 0
+        self.commission = None  # EVENT_EXECUTION
         self.message = None
         self.info = None
 
@@ -312,10 +313,11 @@ class PositionGroupBase(dict):
         self.position = 0
         self.pnl = 0
         self.unrealized_pnl = 0
+        self.commission = 0
         self.average_price = 1
         self.last_update_ts = 0
 
-    def update(self, price, size, *args):
+    def update(self, price, size, commission, *args):
         avg0, pos0 = self.average_price, self.position
         avg1, pos1 = price, size
         pos = decimal_add(pos0, pos1)
@@ -339,7 +341,8 @@ class PositionGroupBase(dict):
 
         self.position = pos
         self.average_price = avg
-        self.pnl += pnl
+        self.pnl += pnl - commission
+        self.commission += commission
         self.update_unrealized_pnl(price)
         self.last_update_ts = time.time()
 
@@ -392,7 +395,7 @@ class OrderGroupBase:
 
     def __handle_event(self, e):
         if e.type == EVENT_EXECUTION:
-            self.position_group.update(e.price, e.size, e.info)
+            self.position_group.update(e.price, e.size, e.commission, e.info)
 
         for cb in self.event_cb:
             try:
