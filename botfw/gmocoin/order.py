@@ -42,9 +42,10 @@ class GmocoinPositionGroup(od.PositionGroupBase):
 
     def update(self, price, size, info):
         super().update(price, size)
-        # commission = info['commission'] * abs(size)
-        # self.commission += commission
-        # self.pnl -= commission
+        # if info:
+        #     commission = info['commission'] * abs(size)
+        #     self.commission += commission
+        #     self.pnl -= commission
 
 
 class GmocoinOrderGroup(od.OrderGroupBase):

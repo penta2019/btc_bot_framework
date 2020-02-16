@@ -76,9 +76,10 @@ class BinancePositionGroup(od.PositionGroupBase):
 
     def update(self, price, size, info):
         super().update(price, size)
-        commission = float(info['o'].get('n') or 0)
-        self.commission += commission
-        self.pnl -= commission
+        if info:
+            commission = float(info['o'].get('n') or 0)
+            self.commission += commission
+            self.pnl -= commission
 
 
 class BinanceOrderGroup(od.OrderGroupBase):
