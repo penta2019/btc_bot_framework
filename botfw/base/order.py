@@ -317,7 +317,7 @@ class PositionGroupBase(dict):
         self.average_price = 1
         self.last_update_ts = 0
 
-    def update(self, price, size, commission, *args):
+    def update(self, price, size, commission=0, *args):
         avg0, pos0 = self.average_price, self.position
         avg1, pos1 = price, size
         pos = decimal_add(pos0, pos1)

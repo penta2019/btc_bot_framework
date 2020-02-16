@@ -51,7 +51,7 @@ class BitflyerPositionGroup(od.PositionGroupBase):
         super().__init__()
         self.sfd = 0  # total sfd
 
-    def update(self, price, size, commission, info):
+    def update(self, price, size, commission=0, info=None):
         super().update(price, size, commission)
         if info:
             self.position = decimal_add(self.position, -info['commission'])
