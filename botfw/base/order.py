@@ -5,7 +5,6 @@ import logging
 import collections
 import threading
 import traceback
-import functools
 
 
 # Order Side
@@ -110,8 +109,7 @@ class OrderManagerBase:
         f = self.__loop.run_in_executor(
             None, self.api.create_order,
             symbol, type_, side, amount, price, params)
-        f.add_done_callback(functools.partial(
-            self.__handle_create_order, o, log))
+        f.add_done_callback(lambda f: self.__handle_create_order(o, log, f))
         return o
 
     def cancel_order(self, o, log=None):
@@ -121,8 +119,7 @@ class OrderManagerBase:
         f = self.__loop.run_in_executor(
             None, self.api.cancel_order,
             o.id, o.symbol)
-        f.add_done_callback(functools.partial(
-            self.__handle_cancel_order, o, log))
+        f.add_done_callback(lambda f: self.__handle_cancel_order(o, log, f))
 
     def cancel_external_orders(self, symbol):
         for o in self.orders.values():
