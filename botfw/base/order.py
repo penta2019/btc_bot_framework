@@ -103,10 +103,11 @@ class OrderManagerBase:
             self, symbol, type_, side, amount, price=None, params={},
             event_cb=None, log=None, sync=False):
         if sync:
+            o = None
             try:
                 self.pending_orders.append(None)
                 res = self.api.create_order(
-                    symbol, type_, side, amount, params)
+                    symbol, type_, side, amount, price, params)
                 o = Order(symbol, type_, side, amount, price, params)
                 o.id = res['id']
                 o.state, o.state_ts = WAIT_OPEN, time.time()
@@ -116,8 +117,8 @@ class OrderManagerBase:
                 self.pending_orders.remove(None)
                 if log:
                     log.info(
-                        f'create order(sync): {o.symbol} {o.type} {o.side} '
-                        f'{o.amount} {o.price} {o.params} => {o.id}')
+                        f'create order(sync): {symbol} {type_} {side} '
+                        f'{amount} {price} {params} => {o and o.id}')
         else:
             o = Order(symbol, type_, side, amount, price, params)
             o.state, o.state_ts = WAIT_OPEN, time.time()
