@@ -15,14 +15,14 @@ def event_open(id_, ts):
     return oe
 
 
-def event_execution(id_, ts, price, size, commission):
+def event_execution(id_, ts, price, size, fee):
     oe = od.OrderEvent()
     oe.type = od.EVENT_EXECUTION
     oe.id = id_
     oe.ts = ts
     oe.price = price
     oe.size = size
-    oe.commission = commission
+    oe.fee = fee
     return oe
 
 
@@ -123,10 +123,10 @@ class OrderManagerSimulator:
             o.close_ts = ts
         if o.event_cb:
             size = -executed if o.side == od.SELL else executed
-            commission = executed * fee_rate
+            fee = executed * fee_rate
             if self.quote_prec is None:
-                commission *= price
-            o.event_cb(event_execution(o.id, ts, price, size, commission))
+                fee *= price
+            o.event_cb(event_execution(o.id, ts, price, size, fee))
         return executed
 
     def trade_callback(self, symbol, ts, price, size):

@@ -41,7 +41,7 @@ class BinanceOrderManager(od.OrderManagerBase):
                 oe.type = od.EVENT_EXECUTION
                 oe.price = float(o['L'])
                 oe.size = -size if o['S'] == 'SELL' else size
-                oe.commission = float(e['o'].get('n') or 0)
+                oe.fee = float(e['o'].get('n') or 0)
             elif t == 'NEW':
                 oe.type = od.EVENT_OPEN
             elif t == 'PARTIAL_FILL':

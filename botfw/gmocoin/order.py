@@ -32,7 +32,7 @@ class GmocoinOrderManager(od.OrderManagerBase):
         oe.price = float(e['executionPrice'])
         size = float(e['executionSize'])
         oe.size = -size if e['side'] == 'SELL' else size
-        oe.commission = 0  # TODO
+        oe.fee = 0  # TODO
         self._handle_order_event(oe)
 
 
