@@ -63,6 +63,7 @@ class OrderManagerSimulator:
         self.exchange = None
         self.delay_create_order = 0.1
         self.delay_cancel_order = 0.1
+        self.quote_prec = None  # size precision in quote. bitmex = 0
         run_forever_nonblocking(self.__worker, self.log, 1)
 
     def create_order(
@@ -117,6 +118,8 @@ class OrderManagerSimulator:
 
     def trade_callback(self, symbol, ts, price, size):
         d = self.data[symbol]
+        qp = self.quote_prec
+        size = size if qp is None else round(price * size, qp)
         closed = []
 
         # handle pending orders
@@ -136,12 +139,14 @@ class OrderManagerSimulator:
                 for p, s in self.exchange.orderbooks[symbol].asks():
                     if (o.price and p >= o.price) or o.amount == o.filled:
                         break
+                    s = s if qp is None else round(p * s, qp)
                     execute(o, ts, p, s)
                     worst_price = p
             elif o.side == od.SELL:
                 for p, s in self.exchange.orderbooks[symbol].bids():
                     if (o.price and p <= o.price) or o.amount == o.filled:
                         break
+                    s = s if qp is None else round(p * s, qp)
                     execute(o, ts, p, s)
                     worst_price = p
             else:

@@ -39,6 +39,9 @@ class ExchangeBase:  # Abstract Factory
             self.order_manager = OrderManagerSimulator(
                 self.api, self.websocket)
             self.order_manager.exchange = self
+            if self.__class__.__name__ == 'Bitmex':
+                self.order_manager.quote_prec = 0
+
             self.order_group_manager = OrderGroupManagerSimulator(
                 self.order_manager)
             self.order_group_manager.order_group_class = getattr(
