@@ -100,9 +100,10 @@ class OrderManagerSimulator:
             if not o.id:
                 raise Exception('create_order failed')
         if log:
+            opt = '(sync)' if sync else ''
             log.info(
-                f'create order(simulated): {o.symbol} {o.type} {o.side} '
-                f'{o.amount} {o.price} {o.params} => {o.id}')
+                f'create order{opt}: {o.symbol} {o.type} {o.side} '
+                f'{o.amount} {o.price} {o.params} => {id(o)}')
         return o
 
     def cancel_order(self, o, log=None, sync=False):
@@ -112,7 +113,8 @@ class OrderManagerSimulator:
         if sync:
             time.sleep(self.delay_cancel_order)
         if log:
-            log.info(f'cancel order(simulated): {o.id}')
+            opt = '(sync)' if sync else ''
+            log.info(f'cancel order{opt}: {o.id}')
 
     def execute(self, o, ts, price, max_size, fee_rate):
         remaining = decimal_add(o.amount, -o.filled)
