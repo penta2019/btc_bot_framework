@@ -101,26 +101,51 @@ class OrderManagerBase:
 
     def create_order(
             self, symbol, type_, side, amount, price=None, params={},
-            event_cb=None, log=None):
-        o = Order(symbol, type_, side, amount, price, params)
-        o.state, o.state_ts = WAIT_OPEN, time.time()
-        o.event_cb = event_cb
-        self.pending_orders.append(o)
+            event_cb=None, log=None, sync=False):
+        if sync:
+            try:
+                self.pending_orders.append(None)
+                res = self.api.create_order(
+                    symbol, type_, side, amount, params)
+                o = Order(symbol, type_, side, amount, price, params)
+                o.id = res['id']
+                o.state, o.state_ts = WAIT_OPEN, time.time()
+                o.event_cb = event_cb
+                self.orders[o.id] = o
+            finally:
+                self.pending_orders.remove(None)
+                if log:
+                    log.info(
+                        f'create order(sync): {o.symbol} {o.type} {o.side} '
+                        f'{o.amount} {o.price} {o.params} => {o.id}')
+        else:
+            o = Order(symbol, type_, side, amount, price, params)
+            o.state, o.state_ts = WAIT_OPEN, time.time()
+            o.event_cb = event_cb
+            self.pending_orders.append(o)
 
-        f = self.__loop.run_in_executor(
-            None, self.api.create_order,
-            symbol, type_, side, amount, price, params)
-        f.add_done_callback(lambda f: self.__handle_create_order(o, log, f))
+            f = self.__loop.run_in_executor(
+                None, self.api.create_order,
+                symbol, type_, side, amount, price, params)
+            f.add_done_callback(
+                lambda f: self.__handle_create_order(o, log, f))
         return o
 
-    def cancel_order(self, o, log=None):
+    def cancel_order(self, o, log=None, sync=False):
         if o.state in [OPEN, WAIT_OPEN]:
             o.state, o.state_ts = WAIT_CANCEL, time.time()
-
-        f = self.__loop.run_in_executor(
-            None, self.api.cancel_order,
-            o.id, o.symbol)
-        f.add_done_callback(lambda f: self.__handle_cancel_order(o, log, f))
+        if sync:
+            try:
+                self.api.cancel_order(o.id, o.symbol)
+            finally:
+                if log:
+                    log.info(f'cancel order: {o.id}')
+        else:
+            f = self.__loop.run_in_executor(
+                None, self.api.cancel_order,
+                o.id, o.symbol)
+            f.add_done_callback(
+                lambda f: self.__handle_cancel_order(o, log, f))
 
     def cancel_external_orders(self, symbol):
         for o in self.orders.values():
@@ -367,15 +392,16 @@ class OrderGroupBase:
         self.position_group = self.PositionGroup()
         self.event_cb = []
 
-    def create_order(self, type_, side, amount, price=None, params={}):
+    def create_order(
+            self, type_, side, amount, price=None, params={}, sync=False):
         o = self.manager.order_manager.create_order(
             self.symbol, type_, side, amount, price, params,
-            self.__handle_event, self.order_log)
+            self.__handle_event, self.order_log, sync)
         o.group_name = self.name
         return o
 
-    def cancel_order(self, o):
-        self.manager.order_manager.cancel_order(o, self.order_log)
+    def cancel_order(self, o, sync=False):
+        self.manager.order_manager.cancel_order(o, self.order_log, sync)
 
     def get_orders(self):
         orders = {}
