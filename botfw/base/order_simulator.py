@@ -1,6 +1,8 @@
 import time
 import logging
 
+from sortedcontainers import SortedList
+
 from ..etc.util import decimal_add, run_forever_nonblocking
 from . import order as od
 
@@ -20,6 +22,7 @@ def event_execution(id_, ts, price, size):
     oe.ts = ts
     oe.price = price
     oe.size = size
+    oe.commission = 0
     return oe
 
 
@@ -40,8 +43,8 @@ class SimulationData(dict):
     def __init__(self):
         super().__init__()
         self.__dict__ = self
-        self.buy = []          # [(price, order)] sorted(descending)
-        self.sell = []         # [(price, order)] sorted(ascending)
+        self.buy = SortedList(key=lambda o: -o.price)
+        self.sell = SortedList(key=lambda o: o.price)
         self.pending = []      # [order]
         self.canceling = []    # [order]
 
@@ -49,6 +52,8 @@ class SimulationData(dict):
 class OrderManagerSimulator:
     def __init__(self, api, ws, retention=60):
         self.log = logging.getLogger(self.__class__.__name__)
+        self.api = api
+        self.ws = ws
         self.retention = retention  # retantion time of closed(canceled) order
         self.last_update_ts = 0
         self.orders = {}  # {id: Order}
@@ -58,12 +63,18 @@ class OrderManagerSimulator:
         self.exchange = None
         self.delay_create_order = 0.1
         self.delay_cancel_order = 0.1
-
         run_forever_nonblocking(self.__worker, self.log, 1)
 
     def create_order(
             self, symbol, type_, side, amount, price=None, params={},
-            event_cb=None, log=None):
+            event_cb=None, log=None, sync=False):
+        # check arguments
+        self.api.ccxt_instance().market(symbol)  # check symbol
+        assert type_ in [od.LIMIT, od.MARKET], 'invalid type'
+        assert side in [od.BUY, od.SELL], 'invalid side'
+        assert type_ != od.MARKET or price is None, 'price with market'
+        assert type_ != od.LIMIT or price is not None, 'no price with limit'
+
         o = od.Order(symbol, type_, side, amount, price, params)
         o.state, o.state_ts = od.WAIT_OPEN, time.time()
         o.event_cb = event_cb
@@ -83,17 +94,24 @@ class OrderManagerSimulator:
             self.data[symbol] = SimulationData()
 
         self.data[symbol].pending.append(o)
+
+        if sync:
+            while o.state == od.WAIT_OPEN:
+                time.sleep(0.01)
+            if not o.id:
+                raise Exception('create_order failed')
         if log:
             log.info(
                 f'create order(simulated): {o.symbol} {o.type} {o.side} '
                 f'{o.amount} {o.price} {o.params} => {o.id}')
         return o
 
-    def cancel_order(self, o, log=None):
+    def cancel_order(self, o, log=None, sync=False):
         self.data[o.symbol].canceling.append(o)
         if o.state in [od.OPEN, od.WAIT_OPEN]:
             o.state, o.state_ts = od.WAIT_CANCEL, time.time()
-
+        if sync:
+            time.sleep(self.delay_cancel_order)
         if log:
             log.info(f'cancel order(simulated): {o.id}')
 
@@ -132,11 +150,9 @@ class OrderManagerSimulator:
             if o.amount != o.filled:  # order is remaining
                 if o.price:  # limit
                     if o.side == od.BUY:
-                        d.buy.append((o.price, o))
-                        d.buy.sort(reverse=True)
+                        d.buy.add(o)
                     elif o.side == od.SELL:
-                        d.sell.append((o.price, o))
-                        d.sell.sort()
+                        d.sell.add(o)
                     else:
                         assert False
                 else:  # market(rarely happen)
@@ -145,19 +161,19 @@ class OrderManagerSimulator:
         # simulate make execution
         if size < 0:  # buy(taker=sell)
             remaining = -size
-            for p, o in d.buy:
-                if p <= price or remaining == 0:
+            for o in d.buy:
+                if o.price <= price or remaining == 0:
                     break
-                executed = execute(o, ts, p, remaining)
+                executed = execute(o, ts, o.price, remaining)
                 remaining = decimal_add(remaining, -executed)
                 if o.state == od.CLOSED:
                     closed.append(o)
         else:  # sell(taker=BUY)
             remaining = size
-            for p, o in d.sell:
-                if p >= price or remaining == 0:
+            for o in d.sell:
+                if o.price >= price or remaining == 0:
                     break
-                executed = execute(o, ts, p, remaining)
+                executed = execute(o, ts, o.price, remaining)
                 remaining = decimal_add(remaining, -executed)
                 if o.state == od.CLOSED:
                     closed.append(o)
@@ -178,9 +194,9 @@ class OrderManagerSimulator:
         # remove closed(canceled) orders
         for o in closed:
             if o.side == od.BUY:
-                d.buy.remove((o.price, o))
+                d.buy.remove(o)
             elif o.side == od.SELL:
-                d.sell.remove((o.price, o))
+                d.sell.remove(o)
             else:
                 assert False
 
