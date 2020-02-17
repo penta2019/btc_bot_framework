@@ -31,7 +31,9 @@ MIN_SIZE = 0.01
 fw.setup_logger(logging.INFO)
 log = logging.getLogger()
 
-ex = exchange()
+# simulate=Trueにすると実際には注文を出さずにリアルタイムシミュレーションを行う
+# シミュレーションの場合はccxt_configの'apiKey'と'secret'はNoneでOK
+ex = exchange(simulate=False)
 ex.create_basics(ccxt_config)
 api = ex.api
 ws = ex.websocket

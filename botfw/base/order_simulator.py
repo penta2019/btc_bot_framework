@@ -15,28 +15,15 @@ def event_open(id_, ts):
     return oe
 
 
-def event_execution(id_, ts, price, size):
+def event_execution(id_, ts, price, size, commission):
     oe = od.OrderEvent()
     oe.type = od.EVENT_EXECUTION
     oe.id = id_
     oe.ts = ts
     oe.price = price
     oe.size = size
-    oe.commission = 0
+    oe.commission = commission
     return oe
-
-
-def execute(o, ts, price, max_size):
-    remaining = decimal_add(o.amount, -o.filled)
-    executed = min(remaining, max_size)
-    o.filled = decimal_add(o.filled, executed)
-    if o.amount == o.filled:
-        o.state, o.state_ts = od.CLOSED, ts
-        o.close_ts = ts
-    if o.event_cb:
-        size = -executed if o.side == od.SELL else executed
-        o.event_cb(event_execution(o.id, ts, price, size))
-    return executed
 
 
 class SimulationData(dict):
@@ -47,6 +34,8 @@ class SimulationData(dict):
         self.sell = SortedList(key=lambda o: o.price)
         self.pending = []      # [order]
         self.canceling = []    # [order]
+        self.taker_fee = 0
+        self.maker_fee = 0
 
 
 class OrderManagerSimulator:
@@ -66,33 +55,42 @@ class OrderManagerSimulator:
         self.quote_prec = None  # size precision in quote. bitmex = 0
         run_forever_nonblocking(self.__worker, self.log, 1)
 
+    def prepare_simulation(self, symbol):
+        if symbol in self.data:
+            return
+
+        market = self.api.ccxt_instance().market(symbol)
+
+        ex = self.exchange
+        if symbol not in ex.trades:
+            ex.create_trade(symbol)
+        if symbol not in ex.orderbooks:
+            ex.create_orderbook(symbol)
+            ex.wait_initialized()
+
+        ex.trades[symbol].add_callback(
+            lambda ts, price, size: self.trade_callback(
+                symbol, ts, price, size))
+
+        sd = SimulationData()
+        sd.taker_fee = market['taker']
+        sd.maker_fee = market['maker']
+        self.data[symbol] = sd
+
     def create_order(
             self, symbol, type_, side, amount, price=None, params={},
             event_cb=None, log=None, sync=False):
         # check arguments
-        self.api.ccxt_instance().market(symbol)  # check symbol
         assert type_ in [od.LIMIT, od.MARKET], 'invalid type'
         assert side in [od.BUY, od.SELL], 'invalid side'
         assert type_ != od.MARKET or price is None, 'price with market'
         assert type_ != od.LIMIT or price is not None, 'no price with limit'
 
+        self.prepare_simulation(symbol)
+
         o = od.Order(symbol, type_, side, amount, price, params)
         o.state, o.state_ts = od.WAIT_OPEN, time.time()
         o.event_cb = event_cb
-
-        if symbol not in self.data:
-            # init simulator for the symbol at the first time
-            ex = self.exchange
-            if symbol not in ex.trades:
-                ex.create_trade(symbol)
-            if symbol not in ex.orderbooks:
-                ex.create_orderbook(symbol)
-                ex.wait_initialized()
-
-            ex.trades[symbol].add_callback(
-                lambda ts, price, size: self.trade_callback(
-                    symbol, ts, price, size))
-            self.data[symbol] = SimulationData()
 
         self.data[symbol].pending.append(o)
 
@@ -115,6 +113,21 @@ class OrderManagerSimulator:
             time.sleep(self.delay_cancel_order)
         if log:
             log.info(f'cancel order(simulated): {o.id}')
+
+    def execute(self, o, ts, price, max_size, fee_rate):
+        remaining = decimal_add(o.amount, -o.filled)
+        executed = min(remaining, max_size)
+        o.filled = decimal_add(o.filled, executed)
+        if o.amount == o.filled:
+            o.state, o.state_ts = od.CLOSED, ts
+            o.close_ts = ts
+        if o.event_cb:
+            size = -executed if o.side == od.SELL else executed
+            commission = executed * fee_rate
+            if self.quote_prec is None:
+                commission *= price
+            o.event_cb(event_execution(o.id, ts, price, size, commission))
+        return executed
 
     def trade_callback(self, symbol, ts, price, size):
         d = self.data[symbol]
@@ -140,14 +153,14 @@ class OrderManagerSimulator:
                     if (o.price and p >= o.price) or o.amount == o.filled:
                         break
                     s = s if qp is None else round(p * s, qp)
-                    execute(o, ts, p, s)
+                    self.execute(o, ts, p, s, d.taker_fee)
                     worst_price = p
             elif o.side == od.SELL:
                 for p, s in self.exchange.orderbooks[symbol].bids():
                     if (o.price and p <= o.price) or o.amount == o.filled:
                         break
                     s = s if qp is None else round(p * s, qp)
-                    execute(o, ts, p, s)
+                    self.execute(o, ts, p, s, d.taker_fee)
                     worst_price = p
             else:
                 assert False
@@ -160,8 +173,9 @@ class OrderManagerSimulator:
                         d.sell.add(o)
                     else:
                         assert False
-                else:  # market(rarely happen)
-                    execute(o, ts, worst_price, o.amount)
+                else:  # market
+                    # when amount is big enough to take all orders on orderbook
+                    self.execute(o, ts, worst_price, o.amount, d.taker_fee)
 
         # simulate make execution
         if size < 0:  # buy(taker=sell)
@@ -169,7 +183,7 @@ class OrderManagerSimulator:
             for o in d.buy:
                 if o.price <= price or remaining == 0:
                     break
-                executed = execute(o, ts, o.price, remaining)
+                executed = self.execute(o, ts, o.price, remaining, d.maker_fee)
                 remaining = decimal_add(remaining, -executed)
                 if o.state == od.CLOSED:
                     closed.append(o)
@@ -178,7 +192,7 @@ class OrderManagerSimulator:
             for o in d.sell:
                 if o.price >= price or remaining == 0:
                     break
-                executed = execute(o, ts, o.price, remaining)
+                executed = self.execute(o, ts, o.price, remaining, d.maker_fee)
                 remaining = decimal_add(remaining, -executed)
                 if o.state == od.CLOSED:
                     closed.append(o)
