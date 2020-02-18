@@ -87,6 +87,7 @@ class OrderManagerSimulator:
         assert type_ != od.LIMIT or price is not None, 'no price with limit'
 
         self.prepare_simulation(symbol)
+        self.count_api('create_order')
 
         o = od.Order(symbol, type_, side, amount, price, params)
         o.state, o.state_ts = od.WAIT_OPEN, time.time()
@@ -107,6 +108,7 @@ class OrderManagerSimulator:
         return o
 
     def cancel_order(self, o, log=None, sync=False):
+        self.count_api('cancel_order')
         self.simulation_info[o.symbol].canceling.append(o)
         if o.state in [od.OPEN, od.WAIT_OPEN]:
             o.state, o.state_ts = od.WAIT_CANCEL, time.time()
@@ -115,6 +117,13 @@ class OrderManagerSimulator:
         if log:
             opt = '(sync)' if sync else ''
             log.info(f'cancel order{opt}: {o.id}')
+
+    def count_api(self, path):
+        if path in self.api.count:
+            self.api.count[path] += 1
+        else:
+            self.api.count[path] = 1
+        self.api.capacity -= 1
 
     def execute(self, o, ts, price, max_size, fee_rate):
         remaining = decimal_add(o.amount, -o.filled)
