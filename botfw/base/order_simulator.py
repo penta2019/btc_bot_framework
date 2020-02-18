@@ -26,7 +26,7 @@ def event_execution(id_, ts, price, size, fee):
     return oe
 
 
-class SimulationData(dict):
+class SimulationInfo(dict):
     def __init__(self):
         super().__init__()
         self.__dict__ = self
@@ -48,7 +48,7 @@ class OrderManagerSimulator:
         self.orders = {}  # {id: Order}
 
         # simulator
-        self.data = {}  # {symbol: SimulationData}
+        self.simulation_info = {}  # {symbol: SimulationInfo}
         self.exchange = None
         self.delay_create_order = 0.1
         self.delay_cancel_order = 0.1
@@ -56,7 +56,7 @@ class OrderManagerSimulator:
         run_forever_nonblocking(self.__worker, self.log, 1)
 
     def prepare_simulation(self, symbol):
-        if symbol in self.data:
+        if symbol in self.simulation_info:
             return
 
         market = self.api.ccxt_instance().market(symbol)
@@ -72,10 +72,10 @@ class OrderManagerSimulator:
             lambda ts, price, size: self.trade_callback(
                 symbol, ts, price, size))
 
-        sd = SimulationData()
+        sd = SimulationInfo()
         sd.taker_fee = market['taker']
         sd.maker_fee = market['maker']
-        self.data[symbol] = sd
+        self.simulation_info[symbol] = sd
 
     def create_order(
             self, symbol, type_, side, amount, price=None, params={},
@@ -92,7 +92,7 @@ class OrderManagerSimulator:
         o.state, o.state_ts = od.WAIT_OPEN, time.time()
         o.event_cb = event_cb
 
-        self.data[symbol].pending.append(o)
+        self.simulation_info[symbol].pending.append(o)
 
         if sync:
             while o.state == od.WAIT_OPEN:
@@ -107,7 +107,7 @@ class OrderManagerSimulator:
         return o
 
     def cancel_order(self, o, log=None, sync=False):
-        self.data[o.symbol].canceling.append(o)
+        self.simulation_info[o.symbol].canceling.append(o)
         if o.state in [od.OPEN, od.WAIT_OPEN]:
             o.state, o.state_ts = od.WAIT_CANCEL, time.time()
         if sync:
@@ -132,7 +132,7 @@ class OrderManagerSimulator:
         return executed
 
     def trade_callback(self, symbol, ts, price, size):
-        d = self.data[symbol]
+        d = self.simulation_info[symbol]
         qp = self.quote_prec
         size = size if qp is None else round(price * size, qp)
         closed = []
