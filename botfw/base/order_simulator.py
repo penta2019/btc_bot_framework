@@ -255,7 +255,7 @@ class OrderGroupManagerSimulator(od.OrderGroupManagerBase):
 
     def set_position_sync_config(self, *args):
         self.log.warning(
-            'set_position_sync_config is ignored in emulator mode.')
+            'set_position_sync_config is ignored in simulation mode.')
 
     def __worker__(self):
         self.__update_unrealized_pnl()
