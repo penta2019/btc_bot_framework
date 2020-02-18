@@ -90,6 +90,7 @@ samples内のファイルを参照してください。
 trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照してください。それぞれ 'botfw/base/trade.py' と 'botfw/base/orderbook.py' 内にあります。
 
 ## 今後の予定
+* 注文・建玉 シミュレータ　現物対応(bitflyer含む)
 * GMOCoin 注文周りの実装
 * Liquid 注文周りの実装
 
