@@ -67,9 +67,9 @@ class OrderEvent(dict):
         self.id = None
         self.ts = None
         self.type = None
-        self.price = None       # EVENT_EXECUTION
-        self.size = None        # EVENT_EXECUTION buy: size > 0, sell: size < 0
-        self.fee = None  # EVENT_EXECUTION
+        self.price = None  # EVENT_EXECUTION
+        self.size = None  # EVENT_EXECUTION buy: size > 0, sell: size < 0
+        self.fee = None   # EVENT_EXECUTION
         self.message = None
         self.info = None
 
