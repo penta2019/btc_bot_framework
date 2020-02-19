@@ -35,6 +35,7 @@ class ExchangeBase:  # Abstract Factory
                 self.api, self.websocket)
             self.order_group_manager = self.OrderGroupManager(
                 self.order_manager)
+            self.order_manager.prepare_simulator = lambda s: none()
         else:
             self.log.info('Simulation mode')
             self.order_manager = OrderManagerSimulator(
