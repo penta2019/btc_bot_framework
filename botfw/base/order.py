@@ -67,16 +67,16 @@ class OrderEvent(dict):
             message=None, info=None):             # additional info
         super().__init__()
         self.__dict__ = self
-        self.type = None
-        self.id = None
-        self.ts = None
+        self.id = id_
+        self.ts = ts
+        self.type = type_
 
-        self.price = None  # EVENT_EXECUTION
-        self.size = None   # EVENT_EXECUTION buy: size > 0, sell: size < 0
-        self.fee = None    # EVENT_EXECUTION
+        self.price = price  # EVENT_EXECUTION
+        self.size = size    # EVENT_EXECUTION buy: size > 0, sell: size < 0
+        self.fee = fee      # EVENT_EXECUTION
 
-        self.message = None
-        self.info = None
+        self.message = message
+        self.info = info
 
 
 class OrderManagerBase:

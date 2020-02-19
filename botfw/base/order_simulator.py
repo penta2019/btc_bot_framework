@@ -41,23 +41,16 @@ class SymbolSimulator(dict):
                 if o2.side == od.SELL:
                     r = decimal_add(r, decimal_add(o2.amount, -o2.filled))
 
-            base_fee = self.order_manager.fee_func(
-                o.symbol, o.side, o.price, o.amount + r, False)[1]
-            if base_fee != 0:
-                if self.position < r + o.amount + base_fee:
-                    raise Exception(
-                        'insufficient balance: '
-                        'balance < total_sell_size + fee_size ('
-                        f'balance={self.position}, '
-                        f'total_sell_size={r + o.amount}, '
-                        f'fee_size={base_fee})')
-            else:
-                if self.position < r + o.amount:
-                    raise Exception(
-                        'insufficient balance: '
-                        'balance < total_sell_size ('
-                        f'balance={self.position}, '
-                        f'total_sell_size={r + o.amount})')
+            total_sell = decimal_add(r, o.amount)
+            fee_from_balance = self.order_manager.fee_func(
+                o.symbol, o.side, 0, o.amount + r, False)[1]
+            if self.position < decimal_add(total_sell, fee_from_balance):
+                raise Exception(
+                    'insufficient balance: '
+                    'balance < total_sell_size + fee_from_balance ('
+                    f'balance={self.position}, '
+                    f'total_sell={total_sell}, '
+                    f'fee_from_balance={fee_from_balance})')
 
         self.pending.append(o)
 
@@ -77,10 +70,10 @@ class SymbolSimulator(dict):
         if o.amount == o.filled:
             o.state, o.state_ts, o.close_ts = od.CLOSED, ts, ts
 
-        fee, base_fee, info = self.order_manager.fee_func(
+        fee, fee_from_balance, info = self.order_manager.fee_func(
             o.symbol, o.side, price, executed, fee_rate)
-        if base_fee != 0:
-            self.position = decimal_add(self.position, -base_fee)
+        if fee_from_balance != 0:
+            self.position = decimal_add(self.position, -fee_from_balance)
 
         if o.event_cb:
             size = -executed if o.side == od.SELL else executed
@@ -191,6 +184,7 @@ class OrderManagerSimulator:
         run_forever_nonblocking(self.__worker, self.log, 1)
 
     def default_fee_func(self, symbol, side, price, amount, fee_rate):
+        # price can be 0 if fee is not important
         if self.quote_prec is None:
             return price * amount * fee_rate, 0, None
         else:
