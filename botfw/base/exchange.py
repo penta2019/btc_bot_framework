@@ -53,7 +53,7 @@ class ExchangeBase:  # Abstract Factory
 
     def create_trade(self, symbol, ws=None):
         if symbol in self.trades:
-            self.log.warning(f'trade({symbol}) already exists')
+            return self.trades[symbol]
 
         trade = self.Trade(symbol, ws)
         self.trades[symbol] = trade
@@ -63,7 +63,7 @@ class ExchangeBase:  # Abstract Factory
 
     def create_orderbook(self, symbol, ws=None):
         if symbol in self.orderbooks:
-            self.log.warning(f'orderbook({symbol}) already exists')
+            return self.orderbooks[symbol]
 
         orderbook = self.Orderbook(symbol, ws)
         self.orderbooks[symbol] = orderbook
