@@ -11,7 +11,7 @@ from . import order as od
 def bitflyer_fee_func(symbol, side, price, amount, fee_rate):
     ffb = 0  # fee from balance
     if symbol == 'BTC/JPY':
-        f = Decimal(str(amount)) * Decimal(str(price))
+        f = Decimal(str(amount)) * Decimal(str(fee_rate))
         ffb = float(f.quantize(Decimal('0.00000001'), ROUND_FLOOR))
     info = {'commission': ffb, 'sfd': 0}
     return price * amount * fee_rate, ffb, info
