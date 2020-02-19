@@ -7,26 +7,6 @@ from ..etc.util import decimal_add, run_forever_nonblocking
 from . import order as od
 
 
-def event_open(id_, ts):
-    oe = od.OrderEvent()
-    oe.type = od.EVENT_OPEN
-    oe.id = id_
-    oe.ts = ts
-    return oe
-
-
-def event_execution(id_, ts, price, size, fee, info=None):
-    oe = od.OrderEvent()
-    oe.type = od.EVENT_EXECUTION
-    oe.id = id_
-    oe.ts = ts
-    oe.price = price
-    oe.size = size
-    oe.fee = fee
-    oe.info = None
-    return oe
-
-
 class SymbolSimulator(dict):
     def __init__(
             self, order_manager, market, trade, orderbook):
@@ -104,7 +84,8 @@ class SymbolSimulator(dict):
 
         if o.event_cb:
             size = -executed if o.side == od.SELL else executed
-            o.event_cb(event_execution(o.id, ts, price, size, fee, info))
+            o.event_cb(od.OrderEvent(
+                o.id, ts, od.EVENT_EXECUTION, price, size, fee, info=info))
         return executed
 
     def trade_callback(self, ts, price, size):
@@ -120,7 +101,7 @@ class SymbolSimulator(dict):
             self.pending.remove(o)
 
             if o.event_cb:
-                o.event_cb(event_open(o.id, ts))
+                o.event_cb(od.OrderEvent(o.id, ts, od.EVENT_OPEN))
 
             # simulate take execution
             worst_price = price

@@ -61,15 +61,20 @@ class Order(dict):
 
 
 class OrderEvent(dict):
-    def __init__(self):
+    def __init__(
+            self, id_=None, ts=None, type_=None,  # basic info
+            price=None, size=None, fee=None,      # for EVENT_EXECUTON
+            message=None, info=None):             # additional info
         super().__init__()
         self.__dict__ = self
+        self.type = None
         self.id = None
         self.ts = None
-        self.type = None
+
         self.price = None  # EVENT_EXECUTION
-        self.size = None  # EVENT_EXECUTION buy: size > 0, sell: size < 0
-        self.fee = None   # EVENT_EXECUTION
+        self.size = None   # EVENT_EXECUTION buy: size > 0, sell: size < 0
+        self.fee = None    # EVENT_EXECUTION
+
         self.message = None
         self.info = None
 
