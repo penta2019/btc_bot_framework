@@ -40,6 +40,11 @@ ws = ex.websocket
 om = ex.order_manager
 ogm = ex.order_group_manager
 
+# 手数料がアカウントごとに異なる取引所のシミュレーションを行う場合(bitflyerの'BTC/JPY'など)
+# simulator = om.prepare_simulator('BTC/JPY')
+# simulator.taker_fee = 0.0001
+# simulator.maker_fee = 0.0001
+
 # ポジション自動修復。 BF現物は非対応（手数料がポジションから引かれる為）
 # ogm.set_position_sync_config(SYMBOL, MIN_SIZE, MIN_SIZE * 100)
 
