@@ -1,10 +1,20 @@
 import time
 import logging
+from decimal import Decimal, ROUND_FLOOR
 
 from sortedcontainers import SortedList
 
 from ..etc.util import decimal_add, run_forever_nonblocking
 from . import order as od
+
+
+def bitflyer_fee_func(symbol, side, price, amount, fee_rate):
+    ffb = 0  # fee from balance
+    if symbol == 'BTC/JPY':
+        f = Decimal(str(amount)) * Decimal(str(price))
+        ffb = float(f.quantize(Decimal('0.00000001'), ROUND_FLOOR))
+    info = {'commission': ffb, 'sfd': 0}
+    return price * amount * fee_rate, ffb, info
 
 
 class SymbolSimulator(dict):
@@ -19,8 +29,8 @@ class SymbolSimulator(dict):
 
         self.symbol = market['symbol']
         self.spot = market['spot']
-        self.taker_fee = market['maker']
-        self.maker_fee = market['taker']
+        self.taker_fee = market['taker']
+        self.maker_fee = market['maker']
         self.delay_create_order = 0.1
         self.delay_cancel_order = 0.1
 
@@ -43,7 +53,9 @@ class SymbolSimulator(dict):
 
             total_sell = decimal_add(r, o.amount)
             fee_from_balance = self.order_manager.fee_func(
-                o.symbol, o.side, 0, o.amount + r, False)[1]
+                o.symbol, o.side, 0, o.amount + r, self.taker_fee)[1]
+            print(self.position, total_sell, fee_from_balance,
+                  decimal_add(total_sell, fee_from_balance))
             if self.position < decimal_add(total_sell, fee_from_balance):
                 raise Exception(
                     'insufficient balance: '
@@ -168,7 +180,7 @@ class SymbolSimulator(dict):
 
 
 class OrderManagerSimulator:
-    def __init__(self, api, ws, retention=60):
+    def __init__(self, api, ws, retention=60, exchange=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.api = api
         self.ws = ws
@@ -177,10 +189,17 @@ class OrderManagerSimulator:
         self.orders = {}  # {id: Order}
 
         # simulator
-        self.exchange = None
+        self.exchange = exchange
         self.simulator = {}  # {symbol: SymbolSimulator}
         self.quote_prec = None  # base_size-to-quote_size precision (bitmex=0)
         self.fee_func = self.default_fee_func
+
+        name = self.exchange.__class__.__name__
+        if name == 'Bitmex':
+            self.quote_prec = 0
+        elif name == 'Bitflyer':
+            self.fee_func = bitflyer_fee_func
+
         run_forever_nonblocking(self.__worker, self.log, 1)
 
     def default_fee_func(self, symbol, side, price, amount, fee_rate):
@@ -190,20 +209,20 @@ class OrderManagerSimulator:
         else:
             return amount * fee_rate, 0, None  # bitmex(SIZE_IN_QUOTE=True)
 
-    def prepare_simulation(self, symbol):
-        if symbol in self.simulator:
-            return
+    def prepare_simulator(self, symbol):
+        if symbol not in self.simulator:
+            ex = self.exchange
+            if symbol not in ex.trades:
+                ex.create_trade(symbol)
+            if symbol not in ex.orderbooks:
+                ex.create_orderbook(symbol)
+                ex.orderbooks[symbol].wait_initialized()
 
-        ex = self.exchange
-        if symbol not in ex.trades:
-            ex.create_trade(symbol)
-        if symbol not in ex.orderbooks:
-            ex.create_orderbook(symbol)
-            ex.wait_initialized()
+            self.simulator[symbol] = SymbolSimulator(
+                self, self.api.ccxt_instance().market(symbol),
+                ex.trades[symbol], ex.orderbooks[symbol])
 
-        self.simulator[symbol] = SymbolSimulator(
-            self, self.api.ccxt_instance().market(symbol),
-            ex.trades[symbol], ex.orderbooks[symbol])
+        return self.simulator[symbol]
 
     def create_order(
             self, symbol, type_, side, amount, price=None, params={},
@@ -214,7 +233,7 @@ class OrderManagerSimulator:
         assert type_ != od.MARKET or price is None, 'price with market'
         assert type_ != od.LIMIT or price is not None, 'no price with limit'
 
-        self.prepare_simulation(symbol)
+        self.prepare_simulator(symbol)
 
         o = od.Order(symbol, type_, side, amount, price, params)
         o.state, o.state_ts = od.WAIT_OPEN, time.time()
@@ -260,27 +279,3 @@ class OrderManagerSimulator:
         for id_ in [id_ for id_, o in self.orders.items()
                     if o.close_ts and ts > o.close_ts]:
             del self.orders[id_]
-
-
-class OrderGroupManagerSimulator(od.OrderGroupManagerBase):
-    def __init__(self, *arg):
-        super().__init__(*arg)
-        self.order_group_class = self.OrderGroup
-
-    def create_order_group(self, symbol, name):
-        if name in self.order_groups:
-            self.log.error('Failed to create order group. '
-                           f'Order group "{name}" already exists.')
-            return None
-
-        og = self.order_group_class(self, symbol, name)
-        self.order_groups[name] = og
-        og.log.info('created')
-        return og
-
-    def set_position_sync_config(self, *args):
-        self.log.warning(
-            'set_position_sync_config is ignored in simulation mode.')
-
-    def __worker__(self):
-        self.__update_unrealized_pnl()

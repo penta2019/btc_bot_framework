@@ -1,11 +1,10 @@
 import logging
 
-from .order_simulator import OrderManagerSimulator, OrderGroupManagerSimulator
+from .order_simulator import OrderManagerSimulator
 
 
-def none(*args):
-    assert False
-    return args[0]
+class none:
+    OrderGroup = None
 
 
 class ExchangeBase:  # Abstract Factory
@@ -39,15 +38,12 @@ class ExchangeBase:  # Abstract Factory
         else:
             self.log.info('Simulation mode')
             self.order_manager = OrderManagerSimulator(
-                self.api, self.websocket)
-            self.order_manager.exchange = self
-            if self.__class__.__name__ == 'Bitmex':
-                self.order_manager.quote_prec = 0
-
-            self.order_group_manager = OrderGroupManagerSimulator(
+                self.api, self.websocket, 60, self)
+            self.order_group_manager = self.OrderGroupManager(
                 self.order_manager)
-            self.order_group_manager.order_group_class = getattr(
-                self.OrderGroupManager, 'OrderGroup')
+            self.order_group_manager.set_position_sync_config =\
+                lambda *args: self.log.warning(
+                    'set_position_sync_config is ignored in simulation mode.')
         return {
             'api': self.api,
             'websocket': self.websocket,
@@ -67,7 +63,7 @@ class ExchangeBase:  # Abstract Factory
 
     def create_orderbook(self, symbol, ws=None):
         if symbol in self.orderbooks:
-            self.log.warning(f'trade({symbol}) already exists')
+            self.log.warning(f'orderbook({symbol}) already exists')
 
         orderbook = self.Orderbook(symbol, ws)
         self.orderbooks[symbol] = orderbook
