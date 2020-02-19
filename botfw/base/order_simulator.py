@@ -17,12 +17,9 @@ def bitflyer_fee_func(symbol, side, price, amount, fee_rate):
     return price * amount * fee_rate, ffb, info
 
 
-class SymbolSimulator(dict):
+class SymbolSimulator:
     def __init__(
             self, order_manager, market, trade, orderbook):
-        super().__init__()
-        self.__dict__ = self
-
         self.order_manager = order_manager
         self.trade = trade
         self.orderbook = orderbook
