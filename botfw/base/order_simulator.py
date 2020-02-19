@@ -15,7 +15,7 @@ def event_open(id_, ts):
     return oe
 
 
-def event_execution(id_, ts, price, size, fee):
+def event_execution(id_, ts, price, size, fee, info=None):
     oe = od.OrderEvent()
     oe.type = od.EVENT_EXECUTION
     oe.id = id_
@@ -23,13 +23,13 @@ def event_execution(id_, ts, price, size, fee):
     oe.price = price
     oe.size = size
     oe.fee = fee
+    oe.info = None
     return oe
 
 
 class SymbolSimulator(dict):
     def __init__(
-            self, order_manager, market, trade, orderbook,
-            quote_prec=None, base_fee_prec=None):
+            self, order_manager, market, trade, orderbook):
         super().__init__()
         self.__dict__ = self
 
@@ -38,9 +38,9 @@ class SymbolSimulator(dict):
         self.orderbook = orderbook
 
         self.symbol = market['symbol']
+        self.spot = market['spot']
         self.taker_fee = market['maker']
         self.maker_fee = market['taker']
-        self.spot = market['spot']
         self.delay_create_order = 0.1
         self.delay_cancel_order = 0.1
 
@@ -53,15 +53,31 @@ class SymbolSimulator(dict):
         self.trade.add_callback(self.trade_callback)
 
     def create_order(self, o):
-        if self.spot and o.side == od.SELL:
+        if self.spot and o.side == od.SELL:  # check balance
             r = 0
             for o2 in self.sell:
                 r = decimal_add(r, decimal_add(o2.amount, -o2.filled))
             for o2 in self.pending:
                 if o2.side == od.SELL:
                     r = decimal_add(r, decimal_add(o2.amount, -o2.filled))
-            if self.position < r + o.amount:
-                raise Exception('insufficient balance')
+
+            base_fee = self.order_manager.fee_func(
+                o.symbol, o.side, o.price, o.amount + r, False)[1]
+            if base_fee != 0:
+                if self.position < r + o.amount + base_fee:
+                    raise Exception(
+                        'insufficient balance: '
+                        'balance < total_sell_size + fee_size ('
+                        f'balance={self.position}, '
+                        f'total_sell_size={r + o.amount}, '
+                        f'fee_size={base_fee})')
+            else:
+                if self.position < r + o.amount:
+                    raise Exception(
+                        'insufficient balance: '
+                        'balance < total_sell_size ('
+                        f'balance={self.position}, '
+                        f'total_sell_size={r + o.amount})')
 
         self.pending.append(o)
 
@@ -80,12 +96,15 @@ class SymbolSimulator(dict):
             self.position, -executed if o.side == od.SELL else executed)
         if o.amount == o.filled:
             o.state, o.state_ts, o.close_ts = od.CLOSED, ts, ts
+
+        fee, base_fee, info = self.order_manager.fee_func(
+            o.symbol, o.side, price, executed, fee_rate)
+        if base_fee != 0:
+            self.position = decimal_add(self.position, -base_fee)
+
         if o.event_cb:
             size = -executed if o.side == od.SELL else executed
-            fee = executed * fee_rate
-            if self.order_manager.quote_prec is None:
-                fee *= price
-            o.event_cb(event_execution(o.id, ts, price, size, fee))
+            o.event_cb(event_execution(o.id, ts, price, size, fee, info))
         return executed
 
     def trade_callback(self, ts, price, size):
@@ -186,8 +205,15 @@ class OrderManagerSimulator:
         # simulator
         self.exchange = None
         self.simulator = {}  # {symbol: SymbolSimulator}
-        self.quote_prec = None  # size precision in quote. bitmex = 0
+        self.quote_prec = None  # base_size-to-quote_size precision (bitmex=0)
+        self.fee_func = self.default_fee_func
         run_forever_nonblocking(self.__worker, self.log, 1)
+
+    def default_fee_func(self, symbol, side, price, amount, fee_rate):
+        if self.quote_prec is None:
+            return price * amount * fee_rate, 0, None
+        else:
+            return amount * fee_rate, 0, None  # bitmex(SIZE_IN_QUOTE=True)
 
     def prepare_simulation(self, symbol):
         if symbol in self.simulator:
