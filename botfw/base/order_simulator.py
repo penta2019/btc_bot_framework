@@ -93,14 +93,16 @@ class SymbolSimulator:
     def trade_callback(self, ts, price, size):
         size = self.to_execute_size(price, size)
         closed = []
+        now = time.time()
 
         # handle pending orders
         ts0 = ts - self.delay_create_order
         for o in [o for o in self.pending if ts0 > o.state_ts]:
             o.id = id(o)
             o.state, o.state_ts, o.open_ts = od.OPEN, ts, ts
-            self.order_manager.orders[o.id] = o
             self.pending.remove(o)
+            self.order_manager.orders[o.id] = o
+            self.order_manager.last_update_ts = now
 
             if o.event_cb:
                 o.event_cb(od.OrderEvent(o.id, ts, od.EVENT_OPEN))
@@ -147,6 +149,7 @@ class SymbolSimulator:
                 remaining = decimal_add(remaining, -executed)
                 if o.state == od.CLOSED:
                     closed.append(o)
+                self.order_manager.last_update_ts = now
         else:  # sell(taker=BUY)
             remaining = size
             for o in self.sell:
@@ -157,6 +160,7 @@ class SymbolSimulator:
                 remaining = decimal_add(remaining, -executed)
                 if o.state == od.CLOSED:
                     closed.append(o)
+                self.order_manager.last_update_ts = now
 
         # handle canceling orders
         ts0 = ts - self.delay_cancel_order
@@ -165,6 +169,7 @@ class SymbolSimulator:
             if o.state != od.CLOSED:
                 o.state, o.state_ts, o.close_ts = od.CANCELED, ts, ts
                 closed.append(o)
+            self.order_manager.last_update_ts = now
 
         # remove closed(canceled) orders
         for o in closed:
