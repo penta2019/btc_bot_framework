@@ -2,6 +2,7 @@ import time
 import logging
 import json
 import traceback
+import threading
 
 import websocket
 
@@ -18,6 +19,7 @@ class WebsocketBase:
         self.is_open = False
         self.is_auth = None  # None: before auth, True: success, False: failed
 
+        self.__lock = threading.Lock()
         self.__after_open_cb = []
         self.__after_auth_cb = []
 
@@ -28,14 +30,16 @@ class WebsocketBase:
         self.ws.close()
 
     def add_after_open_callback(self, cb):
-        self.__after_open_cb.append(cb)
-        if self.is_open:
-            cb()  # call immediately if already opened
+        with self.__lock:
+            self.__after_open_cb.append(cb)
+            if self.is_open:
+                cb()  # call immediately if already opened
 
     def add_after_auth_callback(self, cb):
-        self.__after_auth_cb.append(cb)
-        if self.is_auth:
-            cb()  # call immediately if already authenticated
+        with self.__lock:
+            self.__after_auth_cb.append(cb)
+            if self.is_auth:
+                cb()  # call immediately if already authenticated
 
     def wait_open(self, timeout=10):
         ts = time.time()
@@ -66,8 +70,9 @@ class WebsocketBase:
     def _set_auth_result(self, success):
         if success:
             self.log.info('authentication succeeded')
-            self.is_auth = True
-            self._run_callbacks(self.__after_auth_cb)
+            with self.__lock:
+                self.is_auth = True
+                self._run_callbacks(self.__after_auth_cb)
         else:
             self.log.info('authentication failed')
             self.is_auth = False
@@ -77,8 +82,9 @@ class WebsocketBase:
 
     def _on_open(self):
         self.log.info('open websocket')
-        self.is_open = True
-        self._run_callbacks(self.__after_open_cb)
+        with self.__lock:
+            self.is_open = True
+            self._run_callbacks(self.__after_open_cb)
 
     def _on_close(self):
         self.is_open = False
