@@ -232,6 +232,7 @@ class OrderManagerSimulator:
         # check arguments
         assert type_ in [od.LIMIT, od.MARKET], 'invalid type'
         assert side in [od.BUY, od.SELL], 'invalid side'
+        assert amount > 0, 'amount must be greater then 0'
         assert type_ != od.MARKET or price is None, 'price with market'
         assert type_ != od.LIMIT or price is not None, 'no price with limit'
 
