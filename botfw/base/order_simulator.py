@@ -64,6 +64,10 @@ class SymbolSimulator:
         self.pending.append(o)
 
     def cancel_order(self, o):
+        if o not in self.buy and o not in self.sell:
+            self.order_manager.log.error(
+                f'cancel failed: order {o.id} not found')
+            return
         self.canceling.append(o)
 
     def to_execute_size(self, price, size):
@@ -166,9 +170,13 @@ class SymbolSimulator:
         ts0 = ts - self.delay_cancel_order
         for o in [o for o in self.canceling if ts0 > o.state_ts]:
             self.canceling.remove(o)
-            if o.state != od.CLOSED:
+            if o.state not in [od.CLOSED, od.CANCELED] \
+                    and (o in self.buy or o in self.sell):
                 o.state, o.state_ts, o.close_ts = od.CANCELED, ts, ts
                 closed.append(o)
+            else:
+                self.order_manager.log.error(
+                    f'cancel failed: order {o.id} may be already closed')
             self.order_manager.last_update_ts = now
 
         # remove closed(canceled) orders
@@ -229,32 +237,35 @@ class OrderManagerSimulator:
     def create_order(
             self, symbol, type_, side, amount, price=None, params={},
             event_cb=None, log=None, sync=False):
-        # check arguments
-        assert type_ in [od.LIMIT, od.MARKET], 'invalid type'
-        assert side in [od.BUY, od.SELL], 'invalid side'
-        assert amount > 0, 'amount must be greater then 0'
-        assert type_ != od.MARKET or price is None, 'price with market'
-        assert type_ != od.LIMIT or price is not None, 'no price with limit'
+        o = None
+        try:
+            self.prepare_simulator(symbol)
 
-        self.prepare_simulator(symbol)
+            # check arguments
+            assert type_ in [od.LIMIT, od.MARKET], 'invalid type'
+            assert side in [od.BUY, od.SELL], 'invalid side'
+            assert amount > 0, 'amount must be greater then 0'
+            assert type_ != od.MARKET or price is None, 'price with market'
+            assert type_ != od.LIMIT or price is not None, 'no price'
 
-        o = od.Order(symbol, type_, side, amount, price, params)
-        o.state, o.state_ts = od.WAIT_OPEN, time.time()
-        o.event_cb = event_cb
+            o = od.Order(symbol, type_, side, amount, price, params)
+            o.state, o.state_ts = od.WAIT_OPEN, time.time()
+            o.event_cb = event_cb
 
-        self.count_api('create_order')
-        self.simulator[symbol].create_order(o)
+            self.count_api('create_order')
+            self.simulator[symbol].create_order(o)
 
-        if sync:
-            while o.state == od.WAIT_OPEN:
-                time.sleep(0.01)
-            if not o.id:
-                raise Exception('create_order failed')
-        if log:
-            opt = '(sync)' if sync else ''
-            log.info(
-                f'create order{opt}: {o.symbol} {o.type} {o.side} '
-                f'{o.amount} {o.price} {o.params} => {id(o)}')
+            if sync:
+                while o.state == od.WAIT_OPEN:
+                    time.sleep(0.01)
+                if not o.id:
+                    raise Exception('create_order failed')
+        finally:
+            if log:
+                opt = '(sync)' if sync else ''
+                log.info(
+                    f'create order{opt}: {symbol} {type_} {side} '
+                    f'{amount} {price} {params} => {o and id(o)}')
         return o
 
     def cancel_order(self, o, log=None, sync=False):
