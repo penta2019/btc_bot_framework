@@ -44,9 +44,7 @@ class LiquidWebsocket(WebsocketBase):
         try:
             msg = json.loads(msg)
             e = msg['event']
-            if e == 'created':
-                self.__ch_cb_map[msg['channel']](msg)
-            elif e == 'updated':
+            if e in ['created', 'updated', 'pnl_updated']:
                 self.__ch_cb_map[msg['channel']](msg)
             elif e == 'pusher_internal:subscription_succeeded':
                 ch = msg['channel']
