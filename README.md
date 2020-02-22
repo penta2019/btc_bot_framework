@@ -90,9 +90,20 @@ samples内のファイルを参照してください。
 <br>
 trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照してください。それぞれ 'botfw/base/trade.py' と 'botfw/base/orderbook.py' 内にあります。
 
+## 重要な変更点 (master)
+commit 161 (9537ca0a8404e68d4021eac02c86d675492e0545) ----------
+
+* 注文・キャンセルを非同期（デフォルト）に変更。同期はsync=Trueを引数に渡す。
+* simulation mode 実装
+* liquid 追加
+* OrderGroupの注文一覧(orders)を削除。代わりにget_orders()を追加。
+* 変数名commissionをfeeに変更。手数料周りの実装を共通化。
+
+commit 217 (6667332febf181d03ad7f77f15600de9f82a6bb8) ----------
+
+
 ## 今後の予定
 * GMOCoin 注文周りの実装
-* Liquid 注文周りの実装
 
 ## お願い
 一人で色々考えて作るのは結構大変なので、コミッターやデバッガー、改善案を出してくれる人を募集しています。<br>
