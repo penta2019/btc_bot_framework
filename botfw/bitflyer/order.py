@@ -10,7 +10,7 @@ class BitflyerOrderManager(od.OrderManagerBase):
     def _generate_order_object(self, e):
         info = e.info
         if info['event_type'] != 'ORDER':
-            self.log.warning(f'event for unknown order: {info}')
+            self.log.warning(f'event for unknown order: {e}')
             return None
 
         api = BitflyerApi.ccxt_instance()
