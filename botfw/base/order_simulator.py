@@ -25,7 +25,7 @@ class SymbolSimulator:
         self.orderbook = orderbook
 
         self.symbol = market['symbol']
-        self.spot = market['spot']
+        self.spot = market.get('spot') or False
         self.taker_fee = market['taker']
         self.maker_fee = market['maker']
         self.delay_create_order = 0.1
