@@ -74,6 +74,6 @@ class BitflyerWebsocket(WebsocketBase):
                     if cb:
                         cb(msg)
                 else:
-                    self.log.warning(f'Unknown message {msg}')
+                    self.log.warning(f'Unknown message: {msg}')
         except Exception:
             self.log.error(traceback.format_exc())

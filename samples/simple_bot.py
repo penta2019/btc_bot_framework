@@ -31,12 +31,19 @@ MIN_SIZE = 0.01
 fw.setup_logger(logging.INFO)
 log = logging.getLogger()
 
-ex = exchange()
+# simulate=Trueにすると実際には注文を出さずにリアルタイムシミュレーションを行う
+# シミュレーションの場合はccxt_configの'apiKey'と'secret'はNoneでOK
+ex = exchange(simulate=False)
 ex.create_basics(ccxt_config)
 api = ex.api
 ws = ex.websocket
 om = ex.order_manager
 ogm = ex.order_group_manager
+
+# 手数料がアカウントごとに異なる取引所のシミュレーションを行う場合(bitflyerの'BTC/JPY'など)
+# simulator = om.prepare_simulator('BTC/JPY')
+# simulator.taker_fee = 0.0001
+# simulator.maker_fee = 0.0001
 
 # ポジション自動修復。 BF現物は非対応（手数料がポジションから引かれる為）
 # ogm.set_position_sync_config(SYMBOL, MIN_SIZE, MIN_SIZE * 100)
@@ -91,7 +98,7 @@ if __name__ == '__main__':
             log.info(f'api count: {api.count}')
 
             # pprint.pprint(om.orders)  # すべての注文の表示
-            # pprint.pprint(og.orders)  # OrderGroupに属する注文の表示
+            # pprint.pprint(og.get_orders())  # OrderGroupに属する注文の表示
 
             # サーバーが稼働中であることを確認
             if api.fetch_status()['status'] != 'ok':

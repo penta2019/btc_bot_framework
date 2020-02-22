@@ -10,7 +10,7 @@ class BitflyerOrderManager(od.OrderManagerBase):
     def _generate_order_object(self, e):
         info = e.info
         if info['event_type'] != 'ORDER':
-            self.log.warning(f'event for unknown order: {info}')
+            self.log.warning(f'event for unknown order: {e}')
             return None
 
         api = BitflyerApi.ccxt_instance()
@@ -31,6 +31,8 @@ class BitflyerOrderManager(od.OrderManagerBase):
                 oe.type = od.EVENT_EXECUTION
                 oe.price = e['price']
                 oe.size = -e['size'] if e['side'] == 'SELL' else e['size']
+                oe.fee = oe.price * e['commission']
+                # fee is in "base" currency
             elif t == 'ORDER':
                 oe.type = od.EVENT_OPEN
             elif t in ['CANCEL', 'EXPIRE']:
@@ -48,16 +50,14 @@ class BitflyerPositionGroup(od.PositionGroupBase):
     def __init__(self):
         super().__init__()
         self.sfd = 0  # total sfd
-        self.commission = 0  # total commissions in JPY
 
-    def update(self, price, size, info):
-        super().update(price, size)
-        commission, sfd = info['commission'], info['sfd']
-        self.position = decimal_add(self.position, -commission)
-        c = price * commission
-        self.commission += c
-        self.sfd += sfd
-        self.pnl += -c + sfd
+    def update(self, price, size, fee=0, info=None):
+        super().update(price, size, fee)
+        if info:
+            self.position = decimal_add(self.position, -info['commission'])
+            sfd = info['sfd']
+            self.sfd += sfd
+            self.pnl += sfd
 
 
 class BitflyerOrderGroup(od.OrderGroupBase):

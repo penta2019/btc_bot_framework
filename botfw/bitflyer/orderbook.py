@@ -11,11 +11,11 @@ class BitflyerOrderbook(OrderbookBase):
         self.symbol = symbol
         market_id = BitflyerApi.ccxt_instance().market_id(symbol)
 
-        self.ws = ws or BitflyerWebsocket()
-        self.ws.add_after_open_callback(self.__after_open)
-
         self.ch_snapshot = f'lightning_board_snapshot_{market_id}'
         self.ch_update = f'lightning_board_{market_id}'
+
+        self.ws = ws or BitflyerWebsocket()
+        self.ws.add_after_open_callback(self.__after_open)
 
     def __after_open(self):
         self.init()
