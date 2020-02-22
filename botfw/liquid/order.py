@@ -48,7 +48,7 @@ class LiquidOrderManager(od.OrderManagerBase):
             return  # ignore
         elif 'user_executions_cash_' in ch:
             oe.type = od.EVENT_EXECUTION
-            oe.id = e['order_id']
+            oe.id = str(e['order_id'])
             oe.ts = e['created_at']
             oe.price = e['price']
             size = e['quantity']
