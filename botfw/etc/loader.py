@@ -73,6 +73,7 @@ class DynamicThreadClassLoader:
             module = importlib.import_module(module_name)
 
         instance = getattr(module, class_name)(self.init_args)
+        instance.daemon = True
         instance.start()
         ci = ClassInfo(module, instance)
         self.classes[key] = ci
