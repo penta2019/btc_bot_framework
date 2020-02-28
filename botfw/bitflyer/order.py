@@ -4,8 +4,9 @@ from ..etc.util import unix_time_from_ISO8601Z, decimal_add
 
 
 class BitflyerOrderManager(od.OrderManagerBase):
-    def _after_auth(self):
-        self.ws.subscribe('child_order_events', self.__on_events)
+    def __init__(self, api, ws=None, retention=60):
+        super().__init__(api, ws, retention)
+        self.ws.subscribe('child_order_events', self.__on_events, True)
 
     def _generate_order_object(self, e):
         info = e.info

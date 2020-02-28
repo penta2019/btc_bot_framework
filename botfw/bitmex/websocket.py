@@ -1,66 +1,50 @@
 import time
 import json
 import traceback
-import hmac
-import hashlib
 
 from ..base.websocket import WebsocketBase
+from ..etc.util import hmac_sha256
 
 
 class BitmexWebsocket(WebsocketBase):
     ENDPOINT = 'wss://www.bitmex.com/realtime'
 
-    def __init__(self, key=None, secret=None):
-        super().__init__(self.ENDPOINT)
-        self.__key = key
-        self.__secret = secret
-        self.__request_table = {}  # (msg, cb)
-        self.__ch_cb_map = {}
+    def command(self, op, args=None, cb=None):
+        msg = {'op': op}
+        if args:
+            msg['args'] = args
+        self._request_table[json.dumps(msg)] = (msg, cb)
+        self._request_id += 1
 
-        if self.__key and self.__secret:
-            self.add_after_open_callback(
-                lambda: self.authenticate(self.__key, self.__secret))
-
-    def command(self, op, args=[], cb=None):
-        msg = {"op": op, "args": args}
         self.send(msg)
-        id_ = json.dumps(msg)
-        self.__request_table[id_] = (msg, cb)
-        return id_
 
-    def subscribe(self, ch, cb):
-        key = ch.split(':')[0]
-        if key in self.__ch_cb_map:
-            raise Exception(f'channel "{key}" is already subscribed')
+    def _subscribe(self, ch):
+        if ':' in ch:
+            key = ch.split(':')[0]  # e.g. trade:XBTUSD -> trade
+            if key in self._ch_cb:
+                raise Exception(f'channel "{key}" is already subscribed')
+            self._ch_cb[key] = self._ch_cb[ch]
 
         self.command('subscribe', [ch])
-        self.__ch_cb_map[key] = cb
 
-    def authenticate(self, key, secret):
+    def _authenticate(self):
         expires = int(time.time() * 1000)
-        sign = hmac.new(
-            self.__secret.encode(), f'GET/realtime{expires}'.encode(),
-            hashlib.sha256).hexdigest()
+        sign = hmac_sha256(self.secret, f'GET/realtime{expires}')
         self.command(
-            'authKeyExpires', [self.__key, expires, sign],
+            'authKeyExpires', [self.key, expires, sign],
             lambda msg: self._set_auth_result('success' in msg))
-
-    def _on_open(self):
-        self.__request_table = {}
-        self.__ch_cb_map = {}
-        super()._on_open()
 
     def _on_message(self, msg):
         try:
             msg = json.loads(msg)
             table = msg.get('table')
             if table:
-                self.__ch_cb_map[table](msg)
+                self._ch_cb[table](msg)
             else:
                 self.log.debug(f'revc: {msg}')
                 if 'request' in msg:
                     id_ = json.dumps(msg['request'])
-                    req, cb = self.__request_table[id_]
+                    req, cb = self._request_table[id_]
                     if 'success' in msg:
                         res = msg['success']
                         self.log.info(f'{req} => {res}')

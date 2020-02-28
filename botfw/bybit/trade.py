@@ -9,12 +9,9 @@ class BybitTrade(TradeBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or BybitWebsocket()
-        self.ws.add_after_open_callback(self.__after_open)
 
-    def __after_open(self):
         market_id = BybitApi.ccxt_instance().market_id(self.symbol)
-        ch = f'trade.{market_id}'
-        self.ws.subscribe(ch, self.__on_message)
+        self.ws.subscribe(f'trade.{market_id}', self.__on_message)
 
     def __on_message(self, msg):
         for t in msg['data']:

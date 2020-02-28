@@ -10,18 +10,31 @@ from ..etc.util import run_forever_nonblocking, StopRunForever
 
 
 class WebsocketBase:
-    def __init__(self, url):
+    ENDPOINT = None
+
+    def __init__(self, key=None, secret=None):
         self.log = logging.getLogger(self.__class__.__name__)
-        self.url = url
+
+        self.url = self.ENDPOINT
+        self.key = key
+        self.secret = secret
+
         self.ws = None
         self.running = True
 
         self.is_open = False
         self.is_auth = None  # None: before auth, True: success, False: failed
 
+        self._request_id = 1  # next request id
+        self._request_table = {}
+        self._ch_cb = {}
+
         self.__lock = threading.Lock()
         self.__after_open_cb = []
         self.__after_auth_cb = []
+
+        if self.key and self.secret:
+            self.add_after_open_callback(self._authenticate)
 
         run_forever_nonblocking(self.__worker, self.log, 3)
 
@@ -67,6 +80,19 @@ class WebsocketBase:
         self.ws.send(json.dumps(msg))
         self.log.debug(f'send: {msg}')
 
+    def subscribe(self, ch, cb, auth=False):
+        self._ch_cb[ch] = cb
+        if auth:
+            self.add_after_auth_callback(lambda: self._subscribe(ch))
+        else:
+            self.add_after_open_callback(lambda: self._subscribe(ch))
+
+    def _subscribe(self, ch):
+        self.log.warning('_subscribe() is not implemented')
+
+    def _authenticate(self):
+        self.log.warning('_authenticate() is not implemented')
+
     def _set_auth_result(self, success):
         if success:
             self.log.info('authentication succeeded')
@@ -74,7 +100,7 @@ class WebsocketBase:
                 self.is_auth = True
                 self._run_callbacks(self.__after_auth_cb)
         else:
-            self.log.info('authentication failed')
+            self.log.error('authentication failed')
             self.is_auth = False
 
     def _on_init(self):
@@ -82,6 +108,8 @@ class WebsocketBase:
 
     def _on_open(self):
         self.log.info('open websocket')
+        self._next_id = 1
+        self._request_table = {}
         with self.__lock:
             self.is_open = True
             self._run_callbacks(self.__after_open_cb)

@@ -4,6 +4,8 @@ import decimal
 import logging
 import threading
 import traceback
+import hmac
+import hashlib
 
 import ccxt
 
@@ -20,6 +22,10 @@ def unix_time_from_ISO8601Z(date):
 
 def decimal_add(x0, x1):
     return float(decimal.Decimal(str(x0)) + decimal.Decimal(str(x1)))
+
+
+def hmac_sha256(key, msg):
+    return hmac.new(key.encode(), msg.encode(), hashlib.sha256).hexdigest()
 
 
 def setup_logger(level=logging.INFO):

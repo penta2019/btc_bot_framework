@@ -10,16 +10,16 @@ class BitmexOrderbook(OrderbookBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or BitmexWebsocket()
-        self.ws.add_after_open_callback(self.__after_open)
 
-    def __after_open(self):
-        self.init()
         market_id = BitmexApi.ccxt_instance().market_id(self.symbol)
-        ch = f'{self.CHANNEL}:{market_id}'
-        self.ws.subscribe(ch, self.__on_message)
+        self.ws.subscribe(f'{self.CHANNEL}:{market_id}', self.__on_message)
 
     def __on_message(self, msg):
         action, data = msg['action'], msg['data']
+
+        if action == 'partial':
+            self.init()
+
         if action in ['partial', 'insert']:
             for d in data:
                 sd, key = self.__sd_and_key(d)

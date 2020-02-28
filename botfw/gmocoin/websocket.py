@@ -8,32 +8,20 @@ class GmocoinWebsocket(WebsocketBase):
     ENDPOINT = 'wss://api.coin.z.com/ws/public/v1'
     NO_SYMBOL_CHANNEL = ['executionEvents']
 
-    def __init__(self, key=None, secret=None):
-        super().__init__(self.ENDPOINT)
-        self.__request_table = {}  # (msg, cb)
-        self.__ch_cb_map = {}
+    def command(self, op, args=None, cb=None):
+        msg = {'command': op}
+        if args:
+            msg.update(args)
 
-        if key and secret:
-            self.log.warning('key and secret are ignored.')
-
-    def command(self, op, params={}, cb=None):
-        msg = params
-        msg['command'] = op
         self.send(msg)
-        self.log.info(f'{msg} => None')
-        return None
+        self.log.info(f'{msg}')
 
-    def subscribe(self, ch, cb):
-        # ch = {'channel': channel, 'symbol': symbol}
-        self.command('subscribe', ch)
-        ch0 = ch['channel']
-        ch1 = None if ch0 in self.NO_SYMBOL_CHANNEL else ch['symbol']
-        self.__ch_cb_map[(ch0, ch1)] = cb
-
-    def _on_open(self):
-        self.__request_table = {}
-        self.__ch_cb_map = {}
-        super()._on_open()
+    def _subscribe(self, ch):
+        # ch = (channel, symbol)
+        args = {'channel': ch[0]}
+        if ch[1]:
+            args['symbol'] = ch[1]
+        self.command('subscribe', args)
 
     def _on_message(self, msg):
         try:
@@ -43,7 +31,7 @@ class GmocoinWebsocket(WebsocketBase):
             else:
                 ch0 = msg['channel']
                 ch1 = None if ch0 in self.NO_SYMBOL_CHANNEL else msg['symbol']
-                self.__ch_cb_map[(ch0, ch1)](msg)
+                self._ch_cb[(ch0, ch1)](msg)
         except Exception:
             self.log.error(traceback.format_exc())
 

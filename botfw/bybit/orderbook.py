@@ -10,16 +10,14 @@ class BybitOrderbook(OrderbookBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or BybitWebsocket()
-        self.ws.add_after_open_callback(self.__after_open)
 
-    def __after_open(self):
         market_id = BybitApi.ccxt_instance().market_id(self.symbol)
-        ch = f'{self.CHANNEL}.{market_id}'
-        self.ws.subscribe(ch, self.__on_message)
+        self.ws.subscribe(f'{self.CHANNEL}.{market_id}', self.__on_message)
 
     def __on_message(self, msg):
         type_, data = msg['type'], msg['data']
         if type_ == 'snapshot':
+            self.init()
             for d in data:
                 self.__update(d)
         elif type_ == 'delta':

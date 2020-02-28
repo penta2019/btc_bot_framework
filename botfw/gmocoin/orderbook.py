@@ -8,7 +8,9 @@ class GmocoinOrderbook(OrderbookBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or GmocoinWebsocket()
-        self.ws.add_after_open_callback(self.__after_open)
+
+        market_id = GmocoinApi.ccxt_instance().market_id(self.symbol)
+        self.ws.subscribe(('orderbooks', market_id), self.__on_message)
 
     def init(self):
         self.ls_bids, self.ls_asks = [], []
@@ -18,11 +20,6 @@ class GmocoinOrderbook(OrderbookBase):
 
     def asks(self):
         return self.ls_asks
-
-    def __after_open(self):
-        market_id = GmocoinApi.ccxt_instance().market_id(self.symbol)
-        ch = {'channel': 'orderbooks', 'symbol': market_id}
-        self.ws.subscribe(ch, self.__on_message)
 
     def __on_message(self, msg):
         bids, asks = [], []

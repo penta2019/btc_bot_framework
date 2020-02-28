@@ -27,6 +27,11 @@ MIN_SIZE = 0.01
 # SYMBOL = 'BTC/USDT'
 # MIN_SIZE = 0.001
 
+# BTC_JPY @liquid
+# exchange = fw.Liquid
+# SYMBOL = 'BTC/JPY'
+# MIN_SIZE = 0.01
+
 # ==================== ここから取引所共通のコード ====================
 fw.setup_logger(logging.INFO)
 log = logging.getLogger()

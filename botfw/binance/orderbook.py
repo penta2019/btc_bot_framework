@@ -10,13 +10,9 @@ class BinanceOrderbook(OrderbookBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or self.Websocket()
-        self.ws.add_after_open_callback(self.__after_open)
-
-    def __after_open(self):
-        self.init()
+        self.ws.add_after_open_callback(self.init)
         market_id = BinanceApi.ccxt_instance().market_id(self.symbol)
-        ch = f'{market_id.lower()}@depth'
-        self.ws.subscribe(ch, self.__on_message)
+        self.ws.subscribe(f'{market_id.lower()}@depth', self.__on_message)
 
     def __on_message(self, msg):
         self.__update(self.sd_bids, msg['b'], -1)

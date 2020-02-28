@@ -9,11 +9,12 @@ class LiquidOrderbook(OrderbookBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or LiquidWebsocket()
-        self.ws.add_after_open_callback(self.__after_open)
 
         market_id = self.symbol.replace('/', '').lower()
         self.ch_buy = f'price_ladders_cash_{market_id}_buy'
         self.ch_sell = f'price_ladders_cash_{market_id}_sell'
+        self.ws.subscribe(self.ch_buy, self.__on_message)
+        self.ws.subscribe(self.ch_sell, self.__on_message)
 
     def init(self):
         self.ls_bids, self.ls_asks = [], []
@@ -23,11 +24,6 @@ class LiquidOrderbook(OrderbookBase):
 
     def asks(self):
         return self.ls_asks
-
-    def __after_open(self):
-        self.init()
-        self.ws.subscribe(self.ch_buy, self.__on_message)
-        self.ws.subscribe(self.ch_sell, self.__on_message)
 
     def __on_message(self, msg):
         ob = []

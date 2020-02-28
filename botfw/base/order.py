@@ -84,8 +84,8 @@ class OrderManagerBase:
         self.log = logging.getLogger(self.__class__.__name__)
         self.api = api  # Api object
         self.ws = ws  # Websocket class (with auth)
-        self.ws.add_after_auth_callback(self._after_auth)
         self.retention = retention  # retantion time of closed(canceled) order
+
         self.last_update_ts = 0
         self.orders = {}  # {id: Order}
         self.pending_orders = []
@@ -168,10 +168,6 @@ class OrderManagerBase:
             # if event comes before create_order returns
             # or order is not created by this class
             self.__event_queue.append(e)
-
-    def _after_auth(self):
-        assert False
-        return self
 
     def _generate_order_object(self, e):
         assert False

@@ -10,9 +10,7 @@ class GmocoinOrderManager(od.OrderManagerBase):
     def __init__(self, api, ws=None, retention=60):
         wspr = self.WebsocketPrivate(api)  # ws is unused
         super().__init__(api, wspr, retention)
-
-    def _after_auth(self):
-        self.ws.subscribe({'channel': 'executionEvents'}, self.__on_events)
+        self.ws.subscribe(('executionEvents', None), self.__on_events)
 
     def _generate_order_object(self, e):
         info = e.info

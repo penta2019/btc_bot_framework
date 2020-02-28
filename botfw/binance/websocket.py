@@ -7,52 +7,36 @@ from ..base.websocket import WebsocketBase
 class BinanceWebsocket(WebsocketBase):
     ENDPOINT = 'wss://stream.binance.com:9443/ws'
 
-    def __init__(self, key=None, secret=None):
-        super().__init__(self.ENDPOINT)
-        self.__next_id = 1
-        self.__request_table = {}
-        self.__ch_cb_map = {}
+    def command(self, op, args=None, cb=None):
+        msg = {'method': op, 'id': self._request_id}
+        if args:
+            msg['params'] = args
+        self._request_table[self._request_id] = (msg, cb)
+        self._request_id += 1
 
-        if key and secret:
-            self.log.warning('key and secret are ignored.')
-
-    def command(self, op, args=[], cb=None):
-        id_ = self.__next_id
-        self.__next_id += 1
-        msg = {'method': op, 'params': args, 'id': id_}
         self.send(msg)
-        self.__request_table[id_] = (msg, cb)
-        return id_
 
-    def subscribe(self, ch, cb):
+    def _subscribe(self, ch):
         key = ch.split('@')
         if len(key) < 2:
             raise Exception('Event type is not specified')
-        self.command('SUBSCRIBE', [ch])
-
         symbol = key[0].upper()
         event = 'depthUpdate' if key[1] == 'depth' else key[1]
-        key = (symbol, event)
-        self.__ch_cb_map[(key[0].upper(), key[1])] = cb
-        return key
+        self._ch_cb[(symbol, event)] = self._ch_cb[ch]
 
-    def _on_open(self):
-        self.__next_id = 1
-        self.__request_table = {}
-        self.__ch_cb_map = {}
-        super()._on_open()
-        
+        self.command('SUBSCRIBE', [ch])
+
     def _on_message(self, msg):
         try:
             msg = json.loads(msg)
             s = msg.get('s')
             e = msg.get('e')
             if e:
-                self.__ch_cb_map[(s, e)](msg)
+                self._ch_cb[(s, e)](msg)
             else:
                 self.log.debug(f'recv: {msg}')
                 if 'id' in msg:
-                    req, cb = self.__request_table[msg['id']]
+                    req, cb = self._request_table[msg['id']]
                     if 'result' in msg:
                         res = msg['result']
                         self.log.info(f'{req} => {res}')

@@ -8,44 +8,32 @@ from .jwt import create_jwt
 class LiquidWebsocket(WebsocketBase):
     ENDPOINT = 'wss://tap.liquid.com/app/LiquidTapClient'
 
-    def __init__(self, key=None, secret=None):
-        super().__init__(self.ENDPOINT)
-        self.__key = key
-        self.__secret = secret
-        self.__ch_cb_map = {}
+    def command(self, op, args=None, cb=None):
+        msg = {'event': op}
+        if args:
+            msg['data'] = args
 
-        if self.__key and self.__secret:
-            self.add_after_open_callback(
-                lambda: self.authenticate(self.__key, self.__secret))
-
-    def command(self, op, args=[]):
-        msg = {'event': op, 'data': args}
         self.send(msg)
         self.log.info(f'{msg}')
 
-    def subscribe(self, ch, cb):
+    def _subscribe(self, ch):
         self.command('pusher:subscribe', {'channel': ch})
-        self.__ch_cb_map[ch] = cb
 
-    def authenticate(self, key, secret):
+    def _authenticate(self):
         auth_payload = {
             'path': '/realtime',
             'headers': {
-                'X-Quoine-Auth': create_jwt(key, secret),
+                'X-Quoine-Auth': create_jwt(self.key, self.secret),
             },
         }
         self.command('quoine:auth_request', auth_payload)
-
-    def _on_open(self):
-        self.__ch_cb_map = {}
-        super()._on_open()
 
     def _on_message(self, msg):
         try:
             msg = json.loads(msg)
             e = msg['event']
             if e in ['created', 'updated', 'pnl_updated']:
-                self.__ch_cb_map[msg['channel']](msg)
+                self._ch_cb[msg['channel']](msg)
             elif e == 'pusher_internal:subscription_succeeded':
                 ch = msg['channel']
                 self.log.info(f'subscription succeeded: {ch}')

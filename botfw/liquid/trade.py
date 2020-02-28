@@ -9,12 +9,10 @@ class LiquidTrade(TradeBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or LiquidWebsocket()
-        self.ws.add_after_open_callback(self.__after_open)
 
-    def __after_open(self):
         market_id = self.symbol.replace('/', '').lower()
-        ch = f'execution_details_cash_{market_id}'
-        self.ws.subscribe(ch, self.__on_message)
+        self.ws.subscribe(
+            f'execution_details_cash_{market_id}', self.__on_message)
 
     def __on_message(self, msg):
         data = json.loads(msg['data'])

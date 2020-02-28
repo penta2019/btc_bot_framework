@@ -12,9 +12,6 @@ class BinanceOrderManager(od.OrderManagerBase):
         wsud.add_callback(self.__on_events)
         super().__init__(api, wsud, retention)
 
-    def _after_auth(self):
-        pass  # do nothing
-
     def _generate_order_object(self, e):
         o = e.info['o']
         api = BinanceApi.ccxt_instance()

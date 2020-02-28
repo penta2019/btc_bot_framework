@@ -9,12 +9,10 @@ class BitflyerTrade(TradeBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or BitflyerWebsocket()
-        self.ws.add_after_open_callback(self.__after_open)
 
-    def __after_open(self):
         market_id = BitflyerApi.ccxt_instance().market_id(self.symbol)
-        ch = f'lightning_executions_{market_id}'
-        self.ws.subscribe(ch, self.__on_message)
+        self.ws.subscribe(
+            f'lightning_executions_{market_id}', self.__on_message)
 
     def __on_message(self, msg):
         for t in msg['params']['message']:

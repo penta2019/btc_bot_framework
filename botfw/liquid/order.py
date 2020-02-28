@@ -8,7 +8,8 @@ from .api import LiquidApi
 class LiquidOrderManager(od.OrderManagerBase):
     SYMBOLS = ['BTC/JPY', 'ETH/JPY', 'XRP/JPY']
 
-    def _after_auth(self):
+    def __init__(self, api, ws=None, retention=60):
+        super().__init__(api, ws, retention)
         for symbol in self.SYMBOLS:
             s = symbol.replace('/', '').lower()
             self.ws.subscribe(f'user_executions_cash_{s}', self.__on_events)

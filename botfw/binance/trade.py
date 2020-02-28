@@ -10,12 +10,8 @@ class BinanceTrade(TradeBase):
         super().__init__()
         self.symbol = symbol
         self.ws = ws or self.Websocket()
-        self.ws.add_after_open_callback(self.__after_open)
-
-    def __after_open(self):
         market_id = BinanceApi.ccxt_instance().market_id(self.symbol)
-        ch = f'{market_id.lower()}@trade'
-        self.ws.subscribe(ch, self.__on_message)
+        self.ws.subscribe(f'{market_id.lower()}@trade', self.__on_message)
 
     def __on_message(self, msg):
         ts = msg['E'] / 1000
