@@ -13,6 +13,7 @@ from .base.orderbook import test_orderbook
 from .bitflyer.exchange import Bitflyer
 from .bitmex.exchange import Bitmex
 from .binance.exchange import Binance, BinanceFuture
+from .bybit.exchange import Bybit
 from .gmocoin.exchange import Gmocoin
 from .liquid.exchange import Liquid
 
