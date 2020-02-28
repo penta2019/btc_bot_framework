@@ -631,7 +631,7 @@ class bybit (Exchange):
             for i in range(0, len(queryKeys)):
                 sortedQuery[queryKeys[i]] = query[queryKeys[i]]
             queryStr = self.rawencode(sortedQuery)
-            signature = self.hmac(queryStr, self.encode(self.secret))
+            signature = self.hmac(self.encode(queryStr), self.encode(self.secret))
             queryStr += '&' + 'sign=' + signature
             url += '?' + queryStr
         else:
