@@ -301,6 +301,7 @@ class bybit (Exchange):
             'side': self.capitalize(side),
             'qty': amount,
             'order_type': self.capitalize(type),
+            'time_in_force': 'GoodTillCancel'
         }
         if price is not None:
             request['price'] = price
@@ -495,7 +496,7 @@ class bybit (Exchange):
 
     def parse_order(self, order):
         status = self.parse_order_status(self.safe_string_2(order, 'order_status', 'stop_order_status'))
-        symbol = self.find_symbol(self.safe_string(order, 'symbol'))
+        symbol = self.markets_by_id[self.safe_string(order, 'symbol')]
         timestamp = self.parse8601(self.safe_string(order, 'created_at'))
         lastTradeTimestamp = self.truncate(self.safe_float(order, 'last_exec_time') * 1000, 0)
         qty = self.safe_float(order, 'qty')  # ordered amount in quote currency
@@ -568,7 +569,7 @@ class bybit (Exchange):
 
     def parse_ticker(self, ticker, market=None):
         timestamp = self.safe_integer(ticker, 'close_time')
-        symbol = self.find_symbol(self.safe_string(ticker, 'symbol'), market)
+        symbol = self.markets_by_id[self.safe_string(ticker, 'symbol'), market]
         last = self.safe_float(ticker, 'last_price')
         return {
             'symbol': symbol,
