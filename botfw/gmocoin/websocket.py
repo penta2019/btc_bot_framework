@@ -30,6 +30,11 @@ class GmocoinWebsocket(WebsocketBase):
         ch1 = None if ch0 in self.NO_SYMBOL_CHANNEL else ch['symbol']
         self.__ch_cb_map[(ch0, ch1)] = cb
 
+    def _on_open(self):
+        self.__request_table = {}
+        self.__ch_cb_map = {}
+        super()._on_open()
+
     def _on_message(self, msg):
         try:
             msg = json.loads(msg)

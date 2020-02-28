@@ -36,6 +36,12 @@ class BinanceWebsocket(WebsocketBase):
         self.__ch_cb_map[(key[0].upper(), key[1])] = cb
         return key
 
+    def _on_open(self):
+        self.__next_id = 1
+        self.__request_table = {}
+        self.__ch_cb_map = {}
+        super()._on_open()
+        
     def _on_message(self, msg):
         try:
             msg = json.loads(msg)
