@@ -1,15 +1,15 @@
-from .api_ccxt import CcxtGmocoinApi
+from .api_ccxt import gmocoin
 from ..base.api import ApiBase
 
 
-class GmocoinApi(ApiBase, CcxtGmocoinApi):
+class GmocoinApi(ApiBase, gmocoin):
     MAX_API_CAPACITY = 1
     API_PER_SECOND = 1
-    _ccxt_class = CcxtGmocoinApi
+    _ccxt_class = gmocoin
 
     def __init__(self, ccxt_config={}):
         ApiBase.__init__(self)
-        CcxtGmocoinApi.__init__(self, ccxt_config)
+        gmocoin.__init__(self, ccxt_config)
         self.load_markets()
 
     def fetch_status(self, params=None):

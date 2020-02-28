@@ -15,12 +15,12 @@ def decimal_add(x0, x1):
 # future: BTC_JPY ETH_JPY BCH_JPY LTC_JPY XRP_JPY
 
 # ### Usage ###
-# from botfw.gmocoin.api_ccxt import CcxtGmocoinApi
+# from botfw.gmocoin.api_ccxt import gmocoin
 # ccxt_config = {
 #     'apiKey': 'YOUR_API_KEY',
 #     'secret': 'YOUR_API_SECRET',
 # }
-# gmo = CcxtGmocoinApi(ccxt_config)
+# gmo = gmocoin(ccxt_config)
 
 # import pprint; pprint.pprint(dir(gmo))  # show all methods and variables
 # import logging; logging.basicConfig(level=logging.DEBUG)  # for debugging
@@ -47,7 +47,7 @@ def decimal_add(x0, x1):
 # # see also(https://api.coin.z.com/docs/?python)
 
 
-class CcxtGmocoinApi(ccxt.Exchange):
+class gmocoin(ccxt.Exchange):
     '''
     CCXT compatible API wrapper
     GMOCoin is not supported by ccxt currently.
