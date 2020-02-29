@@ -376,7 +376,7 @@ class bybit (Exchange):
         return self.parse_transactions(transactions, currency, since, limit)
 
     def parse_trade(self, trade, market=None):
-        timestamp = self.safe_timestamp(trade, 'exec_time')
+        timestamp = int(float(trade['exec_time']) * 1000)
         price = self.safe_float(trade, 'exec_price')  # USD
         amount = self.safe_float(trade, 'exec_value')  # BTC/ETH/XRP/EOS
         id = self.safe_string(trade, 'cross_seq')
@@ -508,7 +508,8 @@ class bybit (Exchange):
     def parse_order(self, order, market):
         status = self.parse_order_status(self.safe_string_2(
             order, 'order_status', 'stop_order_status'))
-        symbol = self.markets_by_id[self.safe_string(order, 'symbol')]
+        symbol = self.markets_by_id[self.safe_string(
+            order, 'symbol')]['symbol']
         timestamp = self.parse8601(self.safe_string(order, 'created_at'))
         lastTradeTimestamp = self.truncate(
             self.safe_float(order, 'last_exec_time') * 1000, 0)
@@ -586,7 +587,8 @@ class bybit (Exchange):
 
     def parse_ticker(self, ticker, market=None):
         timestamp = self.safe_integer(ticker, 'close_time')
-        symbol = self.markets_by_id[self.safe_string(ticker, 'symbol'), market]
+        symbol = self.markets_by_id[self.safe_string(
+            ticker, 'symbol')]['symbol']
         last = self.safe_float(ticker, 'last_price')
         return {
             'symbol': symbol,
