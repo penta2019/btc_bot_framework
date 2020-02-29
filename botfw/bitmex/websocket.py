@@ -21,7 +21,7 @@ class BitmexWebsocket(WebsocketBase):
     def _subscribe(self, ch):
         if ':' in ch:
             key = ch.split(':')[0]  # e.g. trade:XBTUSD -> trade
-            if key in self._ch_cb:
+            if key in self._ch_cb and self._ch_cb[key] != self._ch_cb[ch]:
                 raise Exception(f'channel "{key}" is already subscribed')
             self._ch_cb[key] = self._ch_cb[ch]
 
