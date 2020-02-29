@@ -50,7 +50,7 @@ class Order(dict):
         self.filled = 0         # number of contracts
         self.state = None       # state managed by OrderManager
         self.state_ts = None    # timestamp of last state change
-        self.trade_ts = None    # timestamp of last contract
+        self.trade_ts = None    # timestamp of last execution
         self.open_ts = None     # open timestamp
         self.close_ts = None    # close timestamp
         self.external = False   # True if order is created outside OrderManager
@@ -227,7 +227,7 @@ class OrderManagerBase:
             o = self.orders.get(e.id)
             if not o:  # if order is not created by this class
                 o = self._generate_order_object(e)
-                if not o:  # failed to external create order
+                if not o:
                     continue
                 o.id = e.id
                 o.external = True

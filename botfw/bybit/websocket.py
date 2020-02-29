@@ -23,6 +23,10 @@ class BybitWebsocket(WebsocketBase):
             param = f'api_key={self.key}&expires={expires}&signature={sign}'
             self.url = f'{self.ENDPOINT}?{param}'
 
+    def _on_open(self):
+        super()._on_open()
+        self._set_auth_result(True)
+
     def _subscribe(self, ch):
         self.command('subscribe', [ch])
 
