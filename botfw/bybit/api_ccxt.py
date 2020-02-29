@@ -505,7 +505,7 @@ class bybit (Exchange):
         }
         return self.safe_string(transTypes, transType, transType)
 
-    def parse_order(self, order):
+    def parse_order(self, order, market):
         status = self.parse_order_status(self.safe_string_2(
             order, 'order_status', 'stop_order_status'))
         symbol = self.markets_by_id[self.safe_string(order, 'symbol')]
