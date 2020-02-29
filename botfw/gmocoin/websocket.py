@@ -1,6 +1,3 @@
-import json
-import traceback
-
 from ..base.websocket import WebsocketBase
 
 
@@ -23,17 +20,16 @@ class GmocoinWebsocket(WebsocketBase):
             args['symbol'] = ch[1]
         self.command('subscribe', args)
 
-    def _on_message(self, msg):
-        try:
-            msg = json.loads(msg)
-            if 'error' in msg:
-                self.log.error(msg['error'])
-            else:
-                ch0 = msg['channel']
-                ch1 = None if ch0 in self.NO_SYMBOL_CHANNEL else msg['symbol']
-                self._ch_cb[(ch0, ch1)](msg)
-        except Exception:
-            self.log.error(traceback.format_exc())
+    def _authenticate(self):
+        pass
+
+    def _handle_message(self, msg):
+        if 'error' in msg:
+            self.log.error(msg['error'])
+        else:
+            ch0 = msg['channel']
+            ch1 = None if ch0 in self.NO_SYMBOL_CHANNEL else msg['symbol']
+            self._ch_cb[(ch0, ch1)](msg)
 
 
 class GmocoinWebsocketPrivate(GmocoinWebsocket):

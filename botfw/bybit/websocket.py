@@ -1,6 +1,5 @@
 import time
 import json
-import traceback
 
 from ..base.websocket import WebsocketBase
 from ..etc.util import hmac_sha256
@@ -17,12 +16,6 @@ class BybitWebsocket(WebsocketBase):
 
         self.send(msg)
 
-    def _subscribe(self, ch):
-        self.command('subscribe', [ch])
-
-    def _authenticate(self):
-        pass
-
     def _on_init(self):
         if self.key and self.secret:
             expires = int(time.time() * 1000 + 1000)
@@ -30,23 +23,25 @@ class BybitWebsocket(WebsocketBase):
             param = f'api_key={self.key}&expires={expires}&signature={sign}'
             self.url = f'{self.ENDPOINT}?{param}'
 
-    def _on_message(self, msg):
-        try:
-            msg = json.loads(msg)
-            topic = msg.get('topic')
-            if topic:
-                self._ch_cb[topic](msg)
+    def _subscribe(self, ch):
+        self.command('subscribe', [ch])
+
+    def _authenticate(self):
+        pass
+
+    def _handle_message(self, msg):
+        topic = msg.get('topic')
+        if topic:
+            self._ch_cb[topic](msg)
+        else:
+            self.log.debug(f'recv: {msg}')
+            if 'request' in msg:
+                req, _ = self._request_table[json.dumps(msg['request'])]
+                if 'success' in msg:
+                    res = msg['success']
+                    self.log.info(f'{req} => {res}')
+                elif 'error' in msg:
+                    status, error = msg['status'], msg['error']
+                    self.log.error(f'{req} => {status}, {error}')
             else:
-                self.log.debug(f'recv: {msg}')
-                if 'request' in msg:
-                    req, _ = self._request_table[json.dumps(msg['request'])]
-                    if 'success' in msg:
-                        res = msg['success']
-                        self.log.info(f'{req} => {res}')
-                    elif 'error' in msg:
-                        status, error = msg['status'], msg['error']
-                        self.log.error(f'{req} => {status}, {error}')
-                else:
-                    self.log.warning(f'Unknown message: {msg}')
-        except Exception:
-            self.log.error(traceback.format_exc())
+                self.log.warning(f'Unknown message: {msg}')

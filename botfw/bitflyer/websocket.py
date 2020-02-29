@@ -1,7 +1,5 @@
 import time
-import json
 import secrets
-import traceback
 
 from ..base.websocket import WebsocketBase
 from ..etc.util import hmac_sha256
@@ -33,27 +31,23 @@ class BitflyerWebsocket(WebsocketBase):
             'signature': sign},
             lambda msg: self._set_auth_result('result' in msg))
 
-    def _on_message(self, msg):
-        try:
-            msg = json.loads(msg)
-            if msg.get('method') == 'channelMessage':
-                ch = msg['params']['channel']
-                self._ch_cb[ch](msg)
-            else:
-                self.log.debug(f'recv: {msg}')
-                if 'id' in msg:
-                    req, cb = self._request_table[msg['id']]
-                    if 'result' in msg:
-                        res = msg['result']
-                        self.log.info(f'{req} => {res}')
-                    elif 'error' in msg:
-                        err = msg['error']
-                        code, message = err.get('code'), err.get('message')
-                        self.log.error(f'{req} => {code}, {message}')
+    def _handle_message(self, msg):
+        if msg.get('method') == 'channelMessage':
+            ch = msg['params']['channel']
+            self._ch_cb[ch](msg)
+        else:
+            self.log.debug(f'recv: {msg}')
+            if 'id' in msg:
+                req, cb = self._request_table[msg['id']]
+                if 'result' in msg:
+                    res = msg['result']
+                    self.log.info(f'{req} => {res}')
+                elif 'error' in msg:
+                    err = msg['error']
+                    code, message = err.get('code'), err.get('message')
+                    self.log.error(f'{req} => {code}, {message}')
 
-                    if cb:
-                        cb(msg)
-                else:
-                    self.log.warning(f'Unknown message: {msg}')
-        except Exception:
-            self.log.error(traceback.format_exc())
+                if cb:
+                    cb(msg)
+            else:
+                self.log.warning(f'Unknown message: {msg}')

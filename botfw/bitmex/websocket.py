@@ -1,6 +1,5 @@
 import time
 import json
-import traceback
 
 from ..base.websocket import WebsocketBase
 from ..etc.util import hmac_sha256
@@ -34,27 +33,23 @@ class BitmexWebsocket(WebsocketBase):
             'authKeyExpires', [self.key, expires, sign],
             lambda msg: self._set_auth_result('success' in msg))
 
-    def _on_message(self, msg):
-        try:
-            msg = json.loads(msg)
-            table = msg.get('table')
-            if table:
-                self._ch_cb[table](msg)
-            else:
-                self.log.debug(f'revc: {msg}')
-                if 'request' in msg:
-                    id_ = json.dumps(msg['request'])
-                    req, cb = self._request_table[id_]
-                    if 'success' in msg:
-                        res = msg['success']
-                        self.log.info(f'{req} => {res}')
-                    elif 'error' in msg:
-                        status, error = msg['status'], msg['error']
-                        self.log.error(f'{req} => {status}, {error}')
+    def _handle_message(self, msg):
+        table = msg.get('table')
+        if table:
+            self._ch_cb[table](msg)
+        else:
+            self.log.debug(f'revc: {msg}')
+            if 'request' in msg:
+                id_ = json.dumps(msg['request'])
+                req, cb = self._request_table[id_]
+                if 'success' in msg:
+                    res = msg['success']
+                    self.log.info(f'{req} => {res}')
+                elif 'error' in msg:
+                    status, error = msg['status'], msg['error']
+                    self.log.error(f'{req} => {status}, {error}')
 
-                    if cb:
-                        cb(msg)
-                else:
-                    self.log.warning(f'Unknown message: {msg}')
-        except Exception:
-            self.log.error(traceback.format_exc())
+                if cb:
+                    cb(msg)
+            else:
+                self.log.warning(f'Unknown message: {msg}')

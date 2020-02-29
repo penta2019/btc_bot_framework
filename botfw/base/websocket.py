@@ -87,12 +87,6 @@ class WebsocketBase:
         else:
             self.add_after_open_callback(lambda: self._subscribe(ch))
 
-    def _subscribe(self, ch):
-        self.log.warning('_subscribe() is not implemented')
-
-    def _authenticate(self):
-        self.log.warning('_authenticate() is not implemented')
-
     def _set_auth_result(self, success):
         if success:
             self.log.info('authentication succeeded')
@@ -102,6 +96,22 @@ class WebsocketBase:
         else:
             self.log.error('authentication failed')
             self.is_auth = False
+
+    def _run_callbacks(self, cbs, *args):
+        for cb in cbs:
+            try:
+                cb(*args)
+            except Exception:
+                self.log.error(traceback.format_exc())
+
+    def _subscribe(self, ch):
+        assert False
+
+    def _authenticate(self):
+        assert False
+
+    def _handle_message(self, msg):
+        assert False
 
     def _on_init(self):
         pass
@@ -120,17 +130,14 @@ class WebsocketBase:
         self.log.info('close websocket')
 
     def _on_message(self, msg):
-        self.log.debug(f'recv: {msg}')
+        try:
+            msg = json.loads(msg)
+            self._handle_message(msg)
+        except Exception:
+            self.log.error(traceback.format_exc())
 
     def _on_error(self, err):
         self.log.error(f'recv: {err}')
-
-    def _run_callbacks(self, cbs, *args):
-        for cb in cbs:
-            try:
-                cb(*args)
-            except Exception:
-                self.log.error(traceback.format_exc())
 
     def __worker(self):
         self._on_init()

@@ -1,6 +1,3 @@
-import json
-import traceback
-
 from ..base.websocket import WebsocketBase
 from .jwt import create_jwt
 
@@ -28,22 +25,18 @@ class LiquidWebsocket(WebsocketBase):
         }
         self.command('quoine:auth_request', auth_payload)
 
-    def _on_message(self, msg):
-        try:
-            msg = json.loads(msg)
-            e = msg['event']
-            if e in ['created', 'updated', 'pnl_updated']:
-                self._ch_cb[msg['channel']](msg)
-            elif e == 'pusher_internal:subscription_succeeded':
-                ch = msg['channel']
-                self.log.info(f'subscription succeeded: {ch}')
-            elif e == 'quoine:auth_success':
-                self._set_auth_result(True)
-            elif e == 'quoine:auth_failure':
-                self._set_auth_result(False)
-            elif e == 'pusher:connection_established':
-                pass
-            else:
-                self.log.warning(f'Unknown message: {msg}')
-        except Exception:
-            self.log.error(traceback.format_exc())
+    def _handle_message(self, msg):
+        e = msg['event']
+        if e in ['created', 'updated', 'pnl_updated']:
+            self._ch_cb[msg['channel']](msg)
+        elif e == 'pusher_internal:subscription_succeeded':
+            ch = msg['channel']
+            self.log.info(f'subscription succeeded: {ch}')
+        elif e == 'quoine:auth_success':
+            self._set_auth_result(True)
+        elif e == 'quoine:auth_failure':
+            self._set_auth_result(False)
+        elif e == 'pusher:connection_established':
+            pass
+        else:
+            self.log.warning(f'Unknown message: {msg}')

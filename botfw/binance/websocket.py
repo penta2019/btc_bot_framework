@@ -1,6 +1,3 @@
-import json
-import traceback
-
 from ..base.websocket import WebsocketBase
 
 
@@ -26,31 +23,30 @@ class BinanceWebsocket(WebsocketBase):
 
         self.command('SUBSCRIBE', [ch])
 
-    def _on_message(self, msg):
-        try:
-            msg = json.loads(msg)
-            s = msg.get('s')
-            e = msg.get('e')
-            if e:
-                self._ch_cb[(s, e)](msg)
-            else:
-                self.log.debug(f'recv: {msg}')
-                if 'id' in msg:
-                    req, cb = self._request_table[msg['id']]
-                    if 'result' in msg:
-                        res = msg['result']
-                        self.log.info(f'{req} => {res}')
-                    elif 'error' in msg:  # TODO
-                        err = msg['error']
-                        code, message = err.get('code'), err.get('message')
-                        self.log.error(f'{req} => {code}, {message}')
+    def _authenticate(self):
+        pass
 
-                    if cb:
-                        cb(msg)
-                else:
-                    self.log.warning(f'Unknown message {msg}')
-        except Exception:
-            self.log.error(traceback.format_exc())
+    def _handle_message(self, msg):
+        s = msg.get('s')
+        e = msg.get('e')
+        if e:
+            self._ch_cb[(s, e)](msg)
+        else:
+            self.log.debug(f'recv: {msg}')
+            if 'id' in msg:
+                req, cb = self._request_table[msg['id']]
+                if 'result' in msg:
+                    res = msg['result']
+                    self.log.info(f'{req} => {res}')
+                elif 'error' in msg:  # TODO
+                    err = msg['error']
+                    code, message = err.get('code'), err.get('message')
+                    self.log.error(f'{req} => {code}, {message}')
+
+                if cb:
+                    cb(msg)
+            else:
+                self.log.warning(f'Unknown message {msg}')
 
 
 class BinanceFutureWebsocket(BinanceWebsocket):
@@ -80,8 +76,7 @@ class BinanceWebsocketPrivate(WebsocketBase):
         super()._on_open()
         self._set_auth_result(True)
 
-    def _on_message(self, msg):
-        msg = json.loads(msg)
+    def _handle_message(self, msg):
         self._run_callbacks(self.__cb, msg)
 
 
