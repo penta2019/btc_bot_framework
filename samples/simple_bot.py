@@ -32,6 +32,11 @@ MIN_SIZE = 0.01
 # SYMBOL = 'BTC/JPY'
 # MIN_SIZE = 0.01
 
+# BTCUSD @bybit
+# exchange = fw.Bybit
+# SYMBOL = 'BTC/USD'
+# MIN_SIZE = 1
+
 # ==================== ここから取引所共通のコード ====================
 fw.setup_logger(logging.INFO)
 log = logging.getLogger()
@@ -50,7 +55,7 @@ ogm = ex.order_group_manager
 # simulator.taker_fee = 0.0001
 # simulator.maker_fee = 0.0001
 
-# ポジション自動修復。 BF現物は非対応（手数料がポジションから引かれる為）
+# ポジション自動修復(bitflyer, binance, bitmexのみ)。 BF現物は非対応（手数料がポジションから引かれる為）
 # ogm.set_position_sync_config(SYMBOL, MIN_SIZE, MIN_SIZE * 100)
 
 trade = ex.create_trade(SYMBOL)
