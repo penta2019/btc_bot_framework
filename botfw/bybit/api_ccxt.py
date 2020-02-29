@@ -187,7 +187,8 @@ class bybit (Exchange):
     def fetch_my_trades(self, symbol=None, since=None, limit=None, params={}):
         self.load_markets()
         if not('order_id' in list(params.keys())) and (symbol is None):
-            raise ArgumentsRequired(self.id + ' fetchMyTrades requires `symbol` or `order_id` param')
+            raise ArgumentsRequired(
+                self.id + ' fetchMyTrades requires `symbol` or `order_id` param')
         request = {}
         market = None
         if symbol is not None:
@@ -239,7 +240,8 @@ class bybit (Exchange):
             code = self.safe_currency_code(currencyId)
             account = self.account()
             account['total'] = position['wallet_balance']
-            account['used'] = position['position_margin'] + position['occ_closing_fee'] + position['occ_funding_fee'] + position['order_margin']
+            account['used'] = position['position_margin'] + position['occ_closing_fee'] + \
+                position['occ_funding_fee'] + position['order_margin']
             result[code] = account
         return self.parse_balance(result)
 
@@ -251,7 +253,8 @@ class bybit (Exchange):
             'interval': self.timeframes[timeframe],
         }
         if since is None:
-            request['from'] = self.seconds() - 86400  # default from 24 hours ago
+            # default from 24 hours ago
+            request['from'] = self.seconds() - 86400
         else:
             request['from'] = self.truncate(since / 1000, 0)
         if limit is not None:
@@ -263,7 +266,8 @@ class bybit (Exchange):
         filter = {
             'order_id': id,
         }
-        response = self.fetch_orders(symbol, None, None, self.deep_extend(filter, params))
+        response = self.fetch_orders(
+            symbol, None, None, self.deep_extend(filter, params))
         numResults = len(response)
         if numResults == 1:
             return response[0]
@@ -307,9 +311,11 @@ class bybit (Exchange):
             request['price'] = price
         response = None
         if ('stop_px' in list(params.keys())) and ('base_price' in list(params.keys())):
-            response = self.privatePostStopOrderCreate(self.extend(request, params))
+            response = self.privatePostStopOrderCreate(
+                self.extend(request, params))
         else:
-            response = self.privatePostOrderCreate(self.extend(request, params))
+            response = self.privatePostOrderCreate(
+                self.extend(request, params))
         order = self.parse_order(response['result'])
         id = self.safe_string(order, 'order_id')
         self.orders[id] = order
@@ -322,9 +328,11 @@ class bybit (Exchange):
         }
         response = None
         if 'stop_px' in params:
-            response = self.privatePostStopOrderCancel(self.extend(request, params))
+            response = self.privatePostStopOrderCancel(
+                self.extend(request, params))
         else:
-            response = self.privatePostOrderCancel(self.extend(request, params))
+            response = self.privatePostOrderCancel(
+                self.extend(request, params))
         return self.parse_order(response['result'])
 
     def fetch_deposits(self, code=None, since=None, limit=None, params={}):
@@ -363,7 +371,8 @@ class bybit (Exchange):
             request['coin'] = currency
         reqParams = self.extend(request, params)
         response = self.privateGetWalletFundRecords(reqParams)
-        transactions = self.filter_by_array(self.safe_value(response['result'], 'data', []), 'type', ['Withdraw', 'Deposit'], False)
+        transactions = self.filter_by_array(self.safe_value(
+            response['result'], 'data', []), 'type', ['Withdraw', 'Deposit'], False)
         return self.parse_transactions(transactions, currency, since, limit)
 
     def parse_trade(self, trade, market=None):
@@ -412,8 +421,10 @@ class bybit (Exchange):
         # For deposits, transactTime == timestamp
         # For withdrawals, transactTime is submission, timestamp is processed
         timestamp = self.parse8601(self.safe_string(transaction, 'updated_at'))
-        transactTime = self.parse8601(self.safe_string(transaction, 'submited_at'))
-        exec_time = self.safe_string(transaction, 'exec_time')  # used for fetchFundRecords
+        transactTime = self.parse8601(
+            self.safe_string(transaction, 'submited_at'))
+        # used for fetchFundRecords
+        exec_time = self.safe_string(transaction, 'exec_time')
         if exec_time is not None:
             transactTime = self.parse8601(exec_time)
         type = self.safe_string_lower(transaction, 'type')
@@ -495,15 +506,20 @@ class bybit (Exchange):
         return self.safe_string(transTypes, transType, transType)
 
     def parse_order(self, order):
-        status = self.parse_order_status(self.safe_string_2(order, 'order_status', 'stop_order_status'))
+        status = self.parse_order_status(self.safe_string_2(
+            order, 'order_status', 'stop_order_status'))
         symbol = self.markets_by_id[self.safe_string(order, 'symbol')]
         timestamp = self.parse8601(self.safe_string(order, 'created_at'))
-        lastTradeTimestamp = self.truncate(self.safe_float(order, 'last_exec_time') * 1000, 0)
+        lastTradeTimestamp = self.truncate(
+            self.safe_float(order, 'last_exec_time') * 1000, 0)
         qty = self.safe_float(order, 'qty')  # ordered amount in quote currency
-        leaveQty = self.safe_float(order, 'leaves_qty')  # leave amount in quote currency
-        price = self.safe_float(order, 'price')  # float price in quote currency
+        # leave amount in quote currency
+        leaveQty = self.safe_float(order, 'leaves_qty')
+        # float price in quote currency
+        price = self.safe_float(order, 'price')
         amount = None  # ordered amount of base currency
-        filled = self.safe_float(order, 'cum_exec_value')  # filled amount of base currency, not return while place order
+        # filled amount of base currency, not return while place order
+        filled = self.safe_float(order, 'cum_exec_value')
         remaining = self.safe_float(order, 'leaves_value')  # leaves_value
         cost = qty - leaveQty  # filled * price
         average = None
@@ -514,7 +530,8 @@ class bybit (Exchange):
         type = self.safe_string_lower(order, 'order_type')
         side = self.safe_string_lower(order, 'side')
         trades = None
-        fee = None  # fy_todo {"currency":"xx", "cost":xx, "rate":xx} `cum_exec_fee` not return now
+        # fy_todo {"currency":"xx", "cost":xx, "rate":xx} `cum_exec_fee` not return now
+        fee = None
         return {
             'info': order,
             'id': id,
@@ -585,7 +602,8 @@ class bybit (Exchange):
             'open': None,
             'close': last,
             'last': last,
-            'previousClose': self.safe_float(ticker, 'prev_price_24h'),  # previous day close
+            # previous day close
+            'previousClose': self.safe_float(ticker, 'prev_price_24h'),
             'change': None,
             'percentage': self.safe_float(ticker, 'price_24h_pcnt'),
             'average': None,
@@ -632,7 +650,8 @@ class bybit (Exchange):
             for i in range(0, len(queryKeys)):
                 sortedQuery[queryKeys[i]] = query[queryKeys[i]]
             queryStr = self.rawencode(sortedQuery)
-            signature = self.hmac(self.encode(queryStr), self.encode(self.secret))
+            signature = self.hmac(self.encode(queryStr),
+                                  self.encode(self.secret))
             queryStr += '&' + 'sign=' + signature
             url += '?' + queryStr
         else:
