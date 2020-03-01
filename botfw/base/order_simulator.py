@@ -205,7 +205,7 @@ class OrderManagerSimulator:
         self.fee_func = self.default_fee_func
 
         name = self.exchange.__class__.__name__
-        if name == 'Bitmex':
+        if name in ['Bitmex', 'Bybit']:
             self.quote_prec = 0
         elif name == 'Bitflyer':
             self.fee_func = bitflyer_fee_func
