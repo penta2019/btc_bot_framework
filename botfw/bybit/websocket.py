@@ -25,7 +25,8 @@ class BybitWebsocket(WebsocketBase):
 
     def _on_open(self):
         super()._on_open()
-        self._set_auth_result(True)
+        if self.key and self.secret:
+            self._set_auth_result(True)
 
     def _subscribe(self, ch):
         self.command('subscribe', [ch])
