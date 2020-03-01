@@ -25,12 +25,12 @@ class ExchangeBase:  # Abstract Factory
         self.order_group_manager = None
         self.simulate = simulate
 
-    def create_basics(self, ccxt_config):
-        self.api = self.Api(ccxt_config)
-        self.websocket = self.Websocket(
-            ccxt_config['apiKey'], ccxt_config['secret'])
+    def create_basics(self, ccxt_config={}):
         if not self.simulate:
             self.log.info('real trade mode')
+            self.api = self.Api(ccxt_config)
+            self.websocket = self.Websocket(
+                ccxt_config['apiKey'], ccxt_config['secret'])
             self.order_manager = self.OrderManager(
                 self.api, self.websocket)
             self.order_group_manager = self.OrderGroupManager(
@@ -38,6 +38,12 @@ class ExchangeBase:  # Abstract Factory
             self.order_manager.prepare_simulator = lambda s: none()
         else:
             self.log.info('simulation mode')
+            ccxt_config['apiKey'] = None
+            ccxt_config['secret'] = None
+            self.api = self.Api(ccxt_config)
+            self.websocket = self.Websocket(
+                ccxt_config['apiKey'], ccxt_config['secret'])
+
             self.order_manager = OrderManagerSimulator(
                 self.api, self.websocket, 60, self)
             self.order_group_manager = self.OrderGroupManager(
