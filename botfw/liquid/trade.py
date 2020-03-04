@@ -20,6 +20,6 @@ class LiquidTrade(TradeBase):
         price = data['price']
         size = float(data['quantity'])
         if data['taker_side'] == 'sell':
-            size = -size
+            size *= -1
         self.ltp = price
         self._trigger_callback(ts, price, size)

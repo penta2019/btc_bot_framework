@@ -18,6 +18,6 @@ class BitbankTrade(TradeBase):
             price = float(t['price'])
             size = float(t['amount'])
             if t['side'] == 'sell':
-                size = -size
+                size *= -1
             self.ltp = price
             self._trigger_callback(ts, price, size)
