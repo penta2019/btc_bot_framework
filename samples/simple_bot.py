@@ -37,6 +37,8 @@ MIN_SIZE = 0.01
 # SYMBOL = 'BTC/USD'
 # MIN_SIZE = 1
 
+# bitbank, gmocoinの注文・建玉管理は現状未対応。
+
 # ==================== ここから取引所共通のコード ====================
 fw.setup_logger(logging.INFO)
 log = logging.getLogger()
