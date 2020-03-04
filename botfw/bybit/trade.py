@@ -18,8 +18,7 @@ class BybitTrade(TradeBase):
             ts = unix_time_from_ISO8601Z(t['timestamp'])
             price = t['price']
             size = t['size'] / price
-            side = t['side']
-            if side == 'Sell':
+            if t['side'] == 'Sell':
                 size *= -1
             self.ltp = price
             self._trigger_callback(ts, price, size)

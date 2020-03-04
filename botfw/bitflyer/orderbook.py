@@ -34,7 +34,7 @@ class BitflyerOrderbook(OrderbookBase):
 
     def __update(self, sd, d, sign):
         for i in d:
-            p, s = int(i['price']), i['size']
+            p, s = float(i['price']), i['size']
             if s == 0:
                 sd.pop(p * sign, None)
             else:
