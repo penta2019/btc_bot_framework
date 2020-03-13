@@ -37,3 +37,5 @@ class LiquidOrderbook(OrderbookBase):
             self.ls_asks = ob
         else:
             self.log.error(f'Unknown channel {ch}')
+
+        self._trigger_callback()

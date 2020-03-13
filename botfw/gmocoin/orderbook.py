@@ -28,3 +28,5 @@ class GmocoinOrderbook(OrderbookBase):
         for a in msg['asks']:
             asks.append((float(a['price']), float(a['size'])))
         self.ls_bids, self.ls_asks = bids, asks
+
+        self._trigger_callback()
