@@ -96,6 +96,7 @@ class WebsocketBase:
         else:
             self.log.error('authentication failed')
             self.is_auth = False
+            self.ws.close()
 
     def _run_callbacks(self, cbs, *args):
         for cb in cbs:
