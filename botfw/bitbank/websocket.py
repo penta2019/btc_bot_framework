@@ -1,42 +1,56 @@
 import traceback
-import logging
+import json
 
 from ..base.websocket import WebsocketBase
-from ..etc.util import StopRunForever
+from ..etc.util import run_forever_nonblocking
+
+# engine.io-protocol
+# 0 open
+# 1 close
+# 2 ping
+# 3 pong
+# 4 message
+
+# socket.io-protocol (engine.io-protocol=4)
+# 0 connect
+# 1 disconnect
+# 2 event
+# 3 ack
+# 4 error
+# 5 binary_event
+# 6 binary_ack
 
 
 class BitbankWebsocket(WebsocketBase):
-    ENDPOINT = 'wss://stream.bitbank.cc'
+    ENDPOINT = 'wss://stream.bitbank.cc/socket.io/?EIO=3&transport=websocket'
 
     def __init__(self, key=None, secret=None):
         super().__init__(key, secret)
-
-        import socketio
-        self.sio = socketio.Client(
-            reconnection=True,
-            reconnection_attempts=0,
-            reconnection_delay=1,
-            reconnection_delay_max=30,
-            logger=False)
-        self.sio.logger.setLevel(logging.ERROR)
-        self.sio.eio.logger.setLevel(logging.ERROR)
-        self.sio.on('connect', self._on_open)
-        self.sio.on('message', self._on_message)
-        self.sio.on('disconnect', self._on_close)
-        self.sio.on('error', self._on_error)
-        self.sio.connect(self.ENDPOINT, transports=['websocket'])
+        run_forever_nonblocking(self.__ping_worker, self.log, 25)
 
     def _subscribe(self, ch):
-        self.sio.emit('join-room', ch)
-        self.log.info(f'join-room {ch}')
-
-    def _on_init(self):
-        # stop WebsocketBase.__worker()
-        raise StopRunForever
+        msg = f'42["join-room", "{ch}"]'
+        self.ws.send(msg)
+        self.log.info(msg)
 
     def _on_message(self, msg):
+        ep = int(msg[0])  # engine.io-protocol
+        sp = None  # socket.io-protocol
+
+        if ep == 4:  # message
+            sp = int(msg[1])
+            content = msg[2:]
+        else:
+            content = msg[1:]
+
         try:
-            ch = msg['room_name']
-            self._ch_cb[ch](msg)
+            if ep == 4 and sp == 2:
+                m = json.loads(content)[1]
+                ch = m['room_name']
+                self._ch_cb[ch](m)
         except Exception:
             self.log.error(traceback.format_exc())
+
+    def __ping_worker(self):
+        if self.is_open:
+            self.ws.send('2')  # ping
