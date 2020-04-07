@@ -26,7 +26,7 @@ Pythonによる暗号通貨の高頻度取引bot向けフレームワークで�
 * UDP経由の操作（webインターフェース等との連携用）
 * クラス（ロジックファイル）の動的なロード・アンロード
 
-## 対応状況
+## 取引所対応状況
 | 取引所      | API   | 約定情報 | 板情報 | 建玉管理・注文管理 | バグ取り |
 |:-----------|:-----:|:-------:|:-----:|:---------------:|:------:|
 | bitbank    | ○     | ○       | ○     | ×               | △      |    
@@ -50,40 +50,7 @@ Pythonによる暗号通貨の高頻度取引bot向けフレームワークで�
 * websocket-client>=0.48
 * sortedcontainers
 
-## インストール
-別のプロジェクトからモジュールを読み込みたい場合、方法1か方法2を利用してください。
-
-### 方法1: パスの通った場所にシンボリックリンクを貼る(おすすめ)<br>
-少し行儀の悪い方法ですが、おそらく一番トラブルの少ない方法です。
-1. パスの通っている場所を調べる。
-```sh
-$ python3 -c 'import sys; print(sys.path)'
-['', '/usr/lib/python38.zip', '/usr/lib/python3.8', '/usr/lib/python3.8/lib-dynload',
- '/home/sk/.local/lib/python3.8/site-packages', '/usr/lib/python3.8/site-packages']
-```
-2. どこでも良いので（できれば管理者権限の必要ないディレクトリ）にbotfwのシンボリックリンクを作成。
-```sh
-$ cd /home/sk/.local/lib/python3.8/site-packages  # pip install --user で使われるディレクトリ
-$ ln -s /path/to/btc_bot_framework/botfw botfw
-```
-
-### 方法2: PYTHONPATHにプロジェクトディレクトリを追加<br>
-使用しているシェルの設定ファイル(.bashrc, .zshrc等)にPYTHONPATHを追加します。<br>
-正しい作法ですが、IDEによってはlinterのエラーがでたり、自動補完が効かなかったりします<br>
-```
-export PYTHONPATH="/path/to/btc_bot_framework:$PYTHONPATH"
-```
-
-### 方法3: そもそもインストールしない<br>
-プロジェクト内に直接コードを書いて、プロジェクトルートからモジュールとして実行する場合は<br>
-特にインストール作業は必要ありません。<br>
-例えば、samples/bitflyer/orderbook.pyなら以下のように実行できます。(\_\_init\_\_.pyが必要かも)
-```
-$ python3 -m samples.bitflyer.orderbook
-```
-
-
-## 使い方
+## インストールと使い方
 https://github.com/penta2019/btc_bot_framework/wiki<br>
 具体的な実装例はsamples内のファイルを参照してください。
 * samples/simple_bot.py 簡単なbot。あくまで使い方を確認する用。
@@ -93,25 +60,5 @@ https://github.com/penta2019/btc_bot_framework/wiki<br>
 trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照してください。
 それぞれ 'botfw/base/trade.py' と 'botfw/base/orderbook.py' 内にあります。
 
-## 重要な変更点 (master)
-commit 161 (9537ca0a8404e68d4021eac02c86d675492e0545) ----------
-
-* 注文・キャンセルを非同期（デフォルト）に変更。同期はsync=Trueを引数に渡す。
-* simulation mode 実装
-* liquid 追加
-* OrderGroupの注文一覧(orders)を削除。代わりにget_orders()を追加。
-* 変数名commissionをfeeに変更。手数料周りの実装を共通化。
-
-commit 217 (6667332febf181d03ad7f77f15600de9f82a6bb8) ----------
-
-* bitflyer web注文API 削除
-
-commit 251 (b453d933ee80907ff7bfec3b18894f63088d69ae) ----------
-
-
 ## 今後の予定
 * GMOCoin 注文周りの実装
-
-## お願い
-一人で色々考えて作るのは結構大変なので、コミッターやデバッガー、改善案を出してくれる人を募集しています。<br>
-OSSなので成果に対して報酬を出すことはできませんが、それでも良いという方は是非よろしくお願いします。
