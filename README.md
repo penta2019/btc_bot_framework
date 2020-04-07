@@ -84,7 +84,7 @@ $ python3 -m samples.bitflyer.orderbook
 
 
 ## 使い方
-https://github.com/penta2019/btc_bot_framework/wiki
+https://github.com/penta2019/btc_bot_framework/wiki<br>
 具体的な実装例はsamples内のファイルを参照してください。
 * samples/simple_bot.py 簡単なbot。あくまで使い方を確認する用。
 * samples/bitlyfer/trade.py 約定データを取得して表示します。
