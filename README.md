@@ -40,14 +40,8 @@ Pythonによる暗号通貨の高頻度取引bot向けフレームワークで�
 * sortedcontainers
 
 ## インストールと使い方
-https://github.com/penta2019/btc_bot_framework/wiki<br>
-具体的な実装例はsamples内のファイルを参照してください。
-* samples/simple_bot.py 簡単なbot。あくまで使い方を確認する用。
-* samples/bitlyfer/trade.py 約定データを取得して表示します。
-* samples/bitflyer/orderbook.py 板情報を取得して表示します。
-<br>
-trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照してください。
-それぞれ 'botfw/base/trade.py' と 'botfw/base/orderbook.py' 内にあります。
+[wiki](https://github.com/penta2019/btc_bot_framework/wiki)をご覧ください。
+
 
 ## このプロジェクトの対象外
 * ローソク足やインジケータ等のチャート情報
