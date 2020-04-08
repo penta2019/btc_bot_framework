@@ -6,13 +6,6 @@ Pythonによる暗号通貨の高頻度取引bot向けフレームワークで�
 * 取引所毎のwebsocketの仕様の差異を吸収すること。
 * Bot開発において頻繁に出現する処理を再利用可能な形でモジュール化すること。
 
-定数値(の内部値)はccxtとの一貫性や親和性のため取引所固有の値ではなく、ccxtに準拠しています。
-
-* 'FX_BTC_JPY'(bitflyer) -> 'FX_BTC_JPY'(ccxt)
-* 'BTC_JPY(bitflyer) -> 'BTC/JPY'(ccxt)
-* 'BUY'(bitflyer), 'Buy'(bitmex), 'BUY'(binance) -> 'buy'(ccxt)
-* 'LIMIT'(bitflyer), 'Limit'(bitmex), 'LIMIT'(binance) -> 'limit'(ccxt)
-
 簡単な動作確認しかできていないので、バグが多く残っているものと思われます。<br>
 コードを参考にする程度に留めるか、実行する際はご自身で十分に検証を行ってください。<br>
 プログラムの実行は自己責任です。不具合等によって損失が生じた場合でもこちらでは責任を負えません。<br>
@@ -37,10 +30,6 @@ Pythonによる暗号通貨の高頻度取引bot向けフレームワークで�
 | gmocoin    | ○     | ○       | ○     | ×               | △      |
 | liquid     | ○     | ○       | ○     | △(JPYペアのみ)   | △      |
 
-## このプロジェクトの対象外
-* ローソク足やインジケータ等のチャート情報
-* 実用的な売買ロジック
-
 ## 動作環境
 * UNIX互換環境(Windowsは未検証)
 * python>=3.6
@@ -60,5 +49,9 @@ https://github.com/penta2019/btc_bot_framework/wiki<br>
 trade及びorderbookの利用方法はtest_trade()とtest_orderbook()を参照してください。
 それぞれ 'botfw/base/trade.py' と 'botfw/base/orderbook.py' 内にあります。
 
+## このプロジェクトの対象外
+* ローソク足やインジケータ等のチャート情報
+* 実用的な売買ロジック
+
 ## 今後の予定
-* GMOCoin 注文周りの実装
+* gmocoin, bitbank 注文周りの実装
