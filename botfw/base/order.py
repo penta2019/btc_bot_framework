@@ -455,12 +455,16 @@ class OrderGroupManagerBase:
         og.log.info('created')
         return og
 
-    def destroy_order_group(self, og):
+    def destroy_order_group(self, og, cancel_orders=True):
         name = og.name
         if name not in self.order_groups:
             self.log.error('Failed to destroy order group. '
                            f'Unknown order group "{name}". ')
         og = self.order_groups.pop(name)
+        if cancel_orders:
+            for _, o in self.order_manager.orders.items():
+                if o.group_name == name and o.state in [WAIT_OPEN, OPEN]:
+                    og.cancel_order(o)
 
     def get_total_position(self, symbol):
         total = 0
