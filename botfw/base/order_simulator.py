@@ -30,6 +30,7 @@ class SymbolSimulator:
         self.maker_fee = market['maker']
         self.delay_create_order = 0.1
         self.delay_cancel_order = 0.1
+        self.delay_edit_order = 0.1
 
         self.position = 0
         self.buy = SortedList(key=lambda o: -o.price)
@@ -69,6 +70,22 @@ class SymbolSimulator:
                 f'cancel failed: order {o.id} not found')
             return
         self.canceling.append(o)
+
+    def edit_order(self, o, amount, price):
+        amount = amount or o.amount
+        price = price or o.price
+
+        time.sleep(self.delay_edit_order)
+        if amount < o.filled:
+            raise Exception('amount is smaller then filled size')
+        if o.state in [od.CLOSED, od.CANCELED]:
+            raise Exception('order is already closed or canceled')
+
+        l = self.buy if o.side == od.BUY else self.sell
+        l.remove(o)
+        o.amount = amount
+        o.price = price
+        self.pending.append(o)
 
     def to_execute_size(self, price, size):
         qp = self.order_manager.quote_prec
@@ -280,6 +297,19 @@ class OrderManagerSimulator:
         if log:
             opt = '(sync)' if sync else ''
             log.info(f'cancel order{opt}: {o.id}')
+
+    def edit_order(self, o, amount, price, log=None, sync=False):
+        self.count_api('edit_order')
+        o.editing = True
+        try:
+            self.simulator[o.symbol].edit_order(o, amount, price)
+        finally:
+            o.editing = False
+            if log:
+                opt = '(sync)' if sync else ''
+                log.info(
+                    f'edit order{opt}: {o.symbol} {o.type_} {o.side} '
+                    f'{o.amount} {o.price} {o.params} => {o and id(o)}')
 
     def count_api(self, path):
         if path in self.api.count:
