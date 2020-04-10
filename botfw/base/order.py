@@ -53,6 +53,7 @@ class Order(dict):
         self.trade_ts = None    # timestamp of last execution
         self.open_ts = None     # open timestamp
         self.close_ts = None    # close timestamp
+        self.editing = False    # True if order is being edited
         self.external = False   # True if order is created outside OrderManager
 
         # Order Group Mangement Info
@@ -153,6 +154,32 @@ class OrderManagerBase:
             f.add_done_callback(
                 lambda f: self.__handle_cancel_order(o, log, f))
 
+    def edit_order(self, o, amount=None, price=None, log=None, sync=False):
+        o.editing = True
+        if sync:
+            try:
+                res = self.api.edit_order(
+                    o.id, o.symbol, o.type, o.side,
+                    amount or o.amount, price or o.price)
+                o.price = res['price']
+                o.amount = res['amount']
+            finally:
+                o.editing = False
+                if o.filled >= o.amount:
+                    o.state, o.close_ts = CLOSED, time.time()
+                if log:
+                    log.info(
+                        f'edit order: {o.symbol} {o.type} {o.side} '
+                        f'{o.amount} {o.price} {o.params} => {o.id}')
+        else:
+            f = self.__loop.run_in_executor(
+                None, self.api.edit_order,
+                o.id, o.symbol, o.type, o.side,
+                amount or o.amount, price or o.price)
+            f.add_done_callback(
+                lambda f: self.__handle_edit_order(o, log, f))
+        return o
+
     def cancel_external_orders(self, symbol):
         for o in self.orders.values():
             if o.external and o.symbol == symbol and o.state == OPEN:
@@ -184,7 +211,8 @@ class OrderManagerBase:
             if o.state == WAIT_OPEN:
                 o.state, o.open_ts = OPEN, e.ts
         elif t == EVENT_OPEN:
-            o.state, o.open_ts = OPEN, e.ts
+            if o.state == WAIT_OPEN:
+                o.state, o.open_ts = OPEN, e.ts
         elif t == EVENT_CANCEL:
             o.state, o.close_ts = CANCELED, e.ts
         elif t == EVENT_OPEN_FAILED:
@@ -201,7 +229,7 @@ class OrderManagerBase:
         else:
             self.log.error(f'unhandled order event: {e}')
 
-        if o.filled >= o.amount:
+        if o.filled >= o.amount and not o.editing:
             o.state, o.close_ts = CLOSED, e.ts
             if o.filled > o.amount:
                 self.log.error('Filled size is larger than order amount')
@@ -325,6 +353,24 @@ class OrderManagerBase:
             if log:
                 log.info(f'cancel order: {o.id}')
 
+    def __handle_edit_order(self, o, log, f):
+        log = log or self.log
+        try:
+            res = f.result()
+            o.price = res['price']
+            o.amount = res['amount']
+        except Exception as e:
+            elog = log or self.log
+            elog.error(f'{type(e).__name__}: {e}')
+        finally:
+            o.editing = False
+            if o.filled >= o.amount:
+                o.state, o.close_ts = CLOSED, time.time()
+            if log:
+                log.info(
+                    f'edit order: {o.symbol} {o.type} {o.side} '
+                    f'{o.amount} {o.price} {o.params} => {o.id}')
+
     def __worker(self):
         self.__process_queued_order_event()
         self.__remove_closed_orders()
@@ -404,6 +450,11 @@ class OrderGroupBase:
 
     def cancel_order(self, o, sync=False):
         self.manager.order_manager.cancel_order(o, self.order_log, sync)
+
+    def edit_order(self, o, amount=None, price=None, sync=False):
+        o = self.manager.order_manager.edit_order(
+            o, amount, price, self.order_log, sync)
+        return o
 
     def get_orders(self):
         orders = {}

@@ -56,7 +56,6 @@ class LiquidOrderManager(od.OrderManagerBase):
             oe.size = -size if e['my_side'] == 'sell' else size
             oe.fee = 0
 
-        # pprint.pprint(oe)
         self._handle_order_event(oe)
 
 
