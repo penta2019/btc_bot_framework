@@ -25,7 +25,7 @@ class ExchangeBase:  # Abstract Factory
         self.order_group_manager = None
         self.simulate = simulate
 
-    def create_basics(self, ccxt_config={}):
+    def init_account(self, ccxt_config={}):
         if not self.simulate:
             self.log.info('real trade mode')
             self.api = self.Api(ccxt_config)

@@ -46,7 +46,7 @@ log = logging.getLogger()
 # simulate=Trueにすると実際には注文を出さずにリアルタイムシミュレーションを行う
 # シミュレーションの場合はccxt_configの'apiKey'と'secret'はNoneでOK
 ex = exchange(simulate=False)
-ex.create_basics(ccxt_config)
+ex.init_account(ccxt_config)
 api = ex.api
 ws = ex.websocket
 om = ex.order_manager
