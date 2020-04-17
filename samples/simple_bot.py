@@ -6,7 +6,7 @@ import traceback
 import botfw as fw
 
 # ==================== このセクションを書き換えてください ====================
-account = json.loads(open('account/key_secret.json').read())
+account = json.loads(open('account/key_secret.json').read())  # ここはコメントアウト
 ccxt_config = {
     'apiKey': account['key'],     # YOUR_API_KEY
     'secret': account['secret'],  # YOUR_API_SECRET
