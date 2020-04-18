@@ -1,4 +1,5 @@
 from ..base.websocket import WebsocketBase
+from ..etc.util import run_forever_nonblocking
 
 
 class BinanceWebsocket(WebsocketBase):
@@ -60,9 +61,7 @@ class BinanceWebsocketPrivate(WebsocketBase):
         self.__api = api  # _on_init() may be called in super().__init__()
         self.__cb = []
         super().__init__(None)
-
-    def keep_alive(self):
-        self.__api.websocket_key('PUT')
+        run_forever_nonblocking(self.__worker, self.log, 60 * 30)
 
     def add_callback(self, cb):
         self.__cb.append(cb)
@@ -78,6 +77,9 @@ class BinanceWebsocketPrivate(WebsocketBase):
 
     def _handle_message(self, msg):
         self._run_callbacks(self.__cb, msg)
+
+    def __worker(self):
+        self.__api.websocket_key('PUT')  # keep alive
 
 
 class BinanceFutureWebsocketPrivate(BinanceWebsocketPrivate):

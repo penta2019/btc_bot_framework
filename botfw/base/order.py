@@ -1,4 +1,3 @@
-from ..etc.util import decimal_add, run_forever_nonblocking, Timer
 import asyncio
 import time
 import logging
@@ -6,6 +5,7 @@ import collections
 import threading
 import traceback
 
+from ..etc.util import decimal_add, run_forever_nonblocking, Timer
 
 # Order Side
 BUY = 'buy'
