@@ -41,6 +41,7 @@ class OrderbookBase:
             if not self.asks() or not self.bids():
                 if time.time() - ts > timeout:
                     self.log.error(f'timeout({timeout}s)')
+                    return
                 else:
                     count += 1
                     if count % 5 == 0:

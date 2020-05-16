@@ -30,6 +30,7 @@ class TradeBase:
             if not self.ltp:
                 if time.time() - ts > timeout:
                     self.log.error(f'timeout({timeout}s)')
+                    return
                 else:
                     count += 1
                     if count % 5 == 0:
