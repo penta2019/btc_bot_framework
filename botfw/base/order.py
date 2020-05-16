@@ -139,8 +139,17 @@ class OrderManagerBase:
         return o
 
     def cancel_order(self, o, log=None, sync=False):
+        if not o.id:
+            if o.state == WAIT_OPEN and time.time() - o.state_ts < 10:
+                self.log.error('cancel failed: order has not accepted yet')
+            else:
+                o.state = CANCELED
+                self.log.error('cancel failed: invalid order')
+            return
+
         if o.state in [OPEN, WAIT_OPEN]:
             o.state, o.state_ts = WAIT_CANCEL, time.time()
+
         if sync:
             try:
                 self.api.cancel_order(o.id, o.symbol)
@@ -153,6 +162,10 @@ class OrderManagerBase:
                 o.id, o.symbol)
             f.add_done_callback(
                 lambda f: self.__handle_cancel_order(o, log, f))
+
+        if o.id not in self.orders and o not in self.pending_orders:
+            o.state = CANCELED
+            self.log.error(f'cancel failed: Order {o.id} is not in order list')
 
     def edit_order(self, o, amount=None, price=None, log=None, sync=False):
         o.editing = True
