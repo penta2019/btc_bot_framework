@@ -60,6 +60,7 @@ class BinanceWebsocketPrivate(WebsocketBase):
     def __init__(self, api):
         self.__api = api  # _on_init() may be called in super().__init__()
         self.__cb = []
+        self.__key = None  # websocket_key (listenKey)
         super().__init__(None)
         run_forever_nonblocking(self.__worker, self.log, 60 * 30)
 
@@ -68,8 +69,8 @@ class BinanceWebsocketPrivate(WebsocketBase):
 
     def _on_init(self):
         res = self.__api.websocket_key()
-        key = res['listenKey']
-        self.url = f'{self.ENDPOINT}/{key}'
+        self.__key = res['listenKey']
+        self.url = f'{self.ENDPOINT}/{self.__key}'
 
     def _on_open(self):
         super()._on_open()
@@ -79,7 +80,8 @@ class BinanceWebsocketPrivate(WebsocketBase):
         self._run_callbacks(self.__cb, msg)
 
     def __worker(self):
-        self.__api.websocket_key('PUT')  # keep alive
+        if self.__key:
+            self.__api.websocket_key('PUT', self.__key)  # keep alive
 
 
 class BinanceFutureWebsocketPrivate(BinanceWebsocketPrivate):

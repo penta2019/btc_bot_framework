@@ -25,14 +25,18 @@ class BinanceApi(ApiBase, ccxt.binance):
                 return float(pos['positionAmt'])
         raise Exception('symbol not found')
 
-    def websocket_key(self, method='POST'):
+    def websocket_key(self, method='POST', listen_key=None):
         # POST: create new
-        # PUT: keep alive (every 30 minutes)
-        # DELETE: close
+        # PUT: keep alive (every 30 minutes, listen_key is needed)
+        # DELETE: close (listen_key is needed)
+        params = {}
+        if listen_key:
+            params['listenKey'] = listen_key
+
         if self.FUTURE:
-            return self.request('listenKey', 'fapiPrivate', method)
+            return self.request('listenKey', 'fapiPrivate', method, params)
         else:
-            return self.request('userDataStream', 'v3', method)
+            return self.request('userDataStream', 'v3', method, params)
 
 
 class BinanceFutureApi(BinanceApi):
