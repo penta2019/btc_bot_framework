@@ -63,7 +63,7 @@ ogm = ex.order_group_manager
 trade = ex.create_trade(SYMBOL)
 orderbook = ex.create_orderbook(SYMBOL)
 og = ex.create_order_group(SYMBOL, 'test1')
-og.set_order_log(log)  # 自前で注文のログを表示する場合、ここは不要
+og.set_order_log(log)  # create_order, cancel_orderのログを表示
 # og.add_event_callback(lambda e: print(e.__dict__))  # 注文イベント取得時のコールバック関数
 
 # 外部操作・デバッグ用のUDPコマンドラインインターフェース

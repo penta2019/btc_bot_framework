@@ -188,8 +188,7 @@ class OrderManagerBase:
     def cancel_external_orders(self, symbol):
         for o in self.orders.values():
             if o.external and o.symbol == symbol and o.state == OPEN:
-                self.log.warning(
-                    f'cancel external order: {o.id}')
+                self.log.warning(f'cancel external order: {o.id}')
                 self.cancel_order(o)
 
     def _handle_order_event(self, e):
@@ -346,7 +345,6 @@ class OrderManagerBase:
                     f'{o.amount} {o.price} {o.params} => {o.id}')
 
     def __handle_cancel_order(self, o, log, f):
-        log = log or self.log
         try:
             f.result()
         except Exception as e:
@@ -359,7 +357,6 @@ class OrderManagerBase:
                 log.info(f'cancel order: {o.id}')
 
     def __handle_edit_order(self, o, log, f):
-        log = log or self.log
         try:
             res = f.result()
             o.price = res['price']
