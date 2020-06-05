@@ -1,9 +1,9 @@
-import asyncio
 import time
 import logging
 import collections
 import threading
 import traceback
+import concurrent.futures
 
 from ..etc.util import decimal_add, run_forever_nonblocking, Timer
 
@@ -95,13 +95,7 @@ class OrderManagerBase:
         self.__event_queue = collections.deque()
         self.__check_timer = Timer(60)  # timer for check_open_orders
         self.__last_check_tss = {}  # {symbol: last_check_open_orders_ts}
-
-        # for asynchronous create_order(), cancel_order()
-        self.__loop = asyncio.new_event_loop()
-        self.__thread = threading.Thread(
-            name='event_loop', target=self.__loop.run_forever)
-        self.__thread.daemon = True
-        self.__thread.start()
+        self.__executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
@@ -131,8 +125,8 @@ class OrderManagerBase:
             o.event_cb = event_cb
             self.pending_orders.append(o)
 
-            f = self.__loop.run_in_executor(
-                None, self.api.create_order,
+            f = self.__executor.submit(
+                self.api.create_order,
                 symbol, type_, side, amount, price, params)
             f.add_done_callback(
                 lambda f: self.__handle_create_order(o, log, f))
@@ -157,9 +151,7 @@ class OrderManagerBase:
                 if log:
                     log.info(f'cancel order: {o.id}')
         else:
-            f = self.__loop.run_in_executor(
-                None, self.api.cancel_order,
-                o.id, o.symbol)
+            f = self.__executor.submit(self.api.cancel_order, o.id, o.symbol)
             f.add_done_callback(
                 lambda f: self.__handle_cancel_order(o, log, f))
 
@@ -185,8 +177,8 @@ class OrderManagerBase:
                         f'edit order: {o.symbol} {o.type} {o.side} '
                         f'{o.amount} {o.price} {o.params} => {o.id}')
         else:
-            f = self.__loop.run_in_executor(
-                None, self.api.edit_order,
+            f = self.__executor.submit(
+                self.api.edit_order,
                 o.id, o.symbol, o.type, o.side,
                 amount or o.amount, price or o.price)
             f.add_done_callback(
