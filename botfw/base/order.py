@@ -211,7 +211,8 @@ class OrderManagerBase:
         if t == EVENT_EXECUTION:
             o.filled, o.trade_ts = decimal_add(o.filled, abs(e.size)), now
             if o.state in [CLOSED, CANCELED]:
-                self.log.warning('got an execution for a closed order')
+                self.log.warning(
+                    f'got an execution for a closed order: {e.id}')
             if o.state == WAIT_OPEN:
                 o.state, o.open_ts = OPEN, e.ts
         elif t == EVENT_OPEN:
@@ -221,11 +222,11 @@ class OrderManagerBase:
             o.state, o.close_ts = CANCELED, e.ts
         elif t == EVENT_OPEN_FAILED:
             o.state = CANCELED
-            self.log.warning('failed to create order')
+            self.log.warning(f'failed to create order: {e.id}')
         elif t == EVENT_CANCEL_FAILED:
             if o.state == WAIT_CANCEL:
                 o.state = OPEN
-            self.log.warning('failed to cancel order')
+            self.log.warning(f'failed to cancel order: {e.id}')
         elif t == EVENT_CLOSE:
             o.state, o.close_ts = CLOSED, e.ts
         elif t == EVENT_ERROR:
@@ -236,10 +237,11 @@ class OrderManagerBase:
         if o.filled >= o.amount and not o.editing:
             o.state, o.close_ts = CLOSED, e.ts
             if o.filled > o.amount:
-                self.log.error('Filled size is larger than order amount')
+                self.log.error(
+                    f'Filled size is larger than order amount: {e.id}')
 
         if e.message and t != EVENT_ERROR:
-            self.log.warn(e.message)
+            self.log.warning(f'{e.message}: {e.id}')
 
         if o.state != st:
             o.state_ts = now
