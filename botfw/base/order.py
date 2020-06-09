@@ -298,17 +298,15 @@ class OrderManagerBase:
             del self.orders[o.id]
 
         # check if there are 'open' orders which are already closed
-        # find orders whose state_ts is more than retention time ago
         orders = []
         for o in self.orders.values():
-            if o.state not in [CLOSED, CANCELED] \
-                    and now - o.state_ts > self.retention:
+            if o.state not in [CLOSED, CANCELED]:
                 orders.append(o)
 
         if not orders:
             return
 
-        # find the symbol with the oldest check timestamp
+        # find a symbol with the oldest check timestamp
         oldest_ts, symbol = now, None
         for o in orders:
             ts = self.__last_check_tss.get(o.symbol, 0)
@@ -317,7 +315,7 @@ class OrderManagerBase:
         self.__last_check_tss[symbol] = now
 
         # set actually closed(or canceled) orders state as 'canceled'
-        self.log.debug(f'check if open orders for {symbol} are still alive')
+        self.log.debug(f'checking if open orders for {symbol} are still alive')
         open_orders = self.api.fetch_open_orders(symbol)
         ids = [o['id'] for o in open_orders]
         for o in orders:
