@@ -86,13 +86,15 @@ class OrderManagerBase:
         self.api = api  # Api object
         self.ws = ws  # Websocket class (with auth)
         self.retention = retention  # retantion time of closed(canceled) order
+        self.timeout = 30
 
         self.last_update_ts = 0
         self.orders = {}  # {id: Order}
         self.pending_orders = []
 
-        self.__closed_orders = collections.deque()
-        self.__event_queue = collections.deque()
+        self.__zombie_orders = collections.deque()  # [(ts, Order)]
+        self.__closed_orders = collections.deque()  # [Order]
+        self.__event_queue = collections.deque()  # [OrderEvent]
         self.__check_timer = Timer(60)  # timer for check_open_orders
         self.__last_check_tss = {}  # {symbol: last_check_open_orders_ts}
         self.__executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
@@ -136,7 +138,8 @@ class OrderManagerBase:
         elog = log or self.log
 
         if not o.id:
-            if o.state == WAIT_OPEN and time.time() - o.state_ts < 10:
+            if o.state == WAIT_OPEN \
+                    and time.time() - o.state_ts < self.timeout:
                 elog.error('cancel failed: order has not accepted yet')
             else:
                 o.state = CANCELED
@@ -277,9 +280,23 @@ class OrderManagerBase:
             self.__update_order(o, e)
 
     def __remove_closed_orders(self):
+        now = time.time()
+
+        while self.__zombie_orders:
+            ts, o = self.__zombie_orders[0]
+            if now - ts > self.timeout:
+                self.__zombie_orders.popleft()
+                if o.state not in [CLOSED, CANCELED]:
+                    self.log.warning(
+                        f'order "{o.id}" is already closed or canceled.')
+                    o.state, o.state_ts = CANCELED, now
+                    self.__closed_orders.append(o)
+            else:
+                break
+
         while self.__closed_orders:
             o = self.__closed_orders[0]
-            if time.time() - o.state_ts > self.retention:
+            if now - o.state_ts > self.retention:
                 self.__closed_orders.popleft()
                 if o.state in [CLOSED, CANCELED]:
                     self.orders.pop(o.id, None)
@@ -302,36 +319,27 @@ class OrderManagerBase:
         for o in rm_orders:
             del self.orders[o.id]
 
-        # check if there are 'open' orders which are already closed
-        orders = []
-        for o in self.orders.values():
-            if o.state not in [CLOSED, CANCELED]:
-                orders.append(o)
+        # find open orders
+        open_orders = [o for o in self.orders.values()
+                       if o.state not in [CLOSED, CANCELED]]
 
-        if not orders:
+        if not open_orders:
             return
 
         # find a symbol with the oldest check timestamp
         oldest_ts, symbol = now, None
-        for o in orders:
+        for o in open_orders:
             ts = self.__last_check_tss.get(o.symbol, 0)
             if ts < oldest_ts:
                 oldest_ts, symbol = ts, o.symbol
         self.__last_check_tss[symbol] = now
 
-        # set actually closed(or canceled) orders state as 'canceled'
-        self.log.debug(f'checking if open orders for {symbol} are still alive')
-        open_orders = self.api.fetch_open_orders(symbol)
-        ids = [o['id'] for o in open_orders]
-        for o in orders:
-            if o.symbol != symbol:
-                continue
-
-            if o.id not in ids:
-                self.log.warning(
-                    f'order "{o.id}" is already closed or canceled.')
-                o.state, o.state_ts = CANCELED, now
-                self.__closed_orders.append(o)
+        # find zombie orders('open' state, but actually closed)
+        ids = [o['id'] for o in self.api.fetch_open_orders(symbol)]
+        for o in open_orders:
+            if o.symbol == symbol and o.id not in ids:
+                self.log.debug(f'found a zombie order: {o.id}')
+                self.__zombie_orders.append((now, o))
 
     def __handle_create_order(self, o, log, f):
         try:
