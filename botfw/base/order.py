@@ -133,12 +133,14 @@ class OrderManagerBase:
         return o
 
     def cancel_order(self, o, log=None, sync=False):
+        elog = log or self.log
+
         if not o.id:
             if o.state == WAIT_OPEN and time.time() - o.state_ts < 10:
-                self.log.error('cancel failed: order has not accepted yet')
+                elog.error('cancel failed: order has not accepted yet')
             else:
                 o.state = CANCELED
-                self.log.error('cancel failed: invalid order')
+                elog.error('cancel failed: invalid order')
             return
 
         if o.state in [OPEN, WAIT_OPEN]:
@@ -147,6 +149,9 @@ class OrderManagerBase:
         if sync:
             try:
                 self.api.cancel_order(o.id, o.symbol)
+            except Exception as e:
+                o.state, o.state_ts = CANCELED, time.time()
+                elog.error(f'{type(e).__name__}: {e}')
             finally:
                 if log:
                     log.info(f'cancel order: {o.id}')
@@ -157,7 +162,7 @@ class OrderManagerBase:
 
         if o.id not in self.orders and o not in self.pending_orders:
             o.state = CANCELED
-            self.log.error(f'cancel failed: Order {o.id} is not in order list')
+            elog.error(f'cancel failed: Order {o.id} is not in order list')
 
     def edit_order(self, o, amount=None, price=None, log=None, sync=False):
         o.editing = True
@@ -335,8 +340,7 @@ class OrderManagerBase:
             self.orders[o.id] = o
         except Exception as e:
             o.state, o.state_ts = CANCELED, time.time()
-            elog = log or self.log
-            elog.error(f'{type(e).__name__}: {e}')
+            (log or self.log).error(f'{type(e).__name__}: {e}')
         finally:
             self.pending_orders.remove(o)
             if log:
@@ -350,8 +354,7 @@ class OrderManagerBase:
         except Exception as e:
             if o.state == WAIT_CANCEL:
                 o.state, o.state_ts = OPEN, time.time()
-            elog = log or self.log
-            elog.error(f'{type(e).__name__}: {e}')
+            (log or self.log).error(f'{type(e).__name__}: {e}')
         finally:
             if log:
                 log.info(f'cancel order: {o.id}')
@@ -362,8 +365,7 @@ class OrderManagerBase:
             o.price = res['price']
             o.amount = res['amount']
         except Exception as e:
-            elog = log or self.log
-            elog.error(f'{type(e).__name__}: {e}')
+            (log or self.log).error(f'{type(e).__name__}: {e}')
         finally:
             o.editing = False
             if o.filled >= o.amount:
