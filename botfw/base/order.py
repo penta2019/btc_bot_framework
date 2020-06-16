@@ -223,9 +223,13 @@ class OrderManagerBase:
                     f'got an execution for a closed order: {e.id}')
             if o.state == WAIT_OPEN:
                 o.state, o.open_ts = OPEN, e.ts
+            elif not o.open_ts:
+                o.open_ts = e.ts
         elif t == EVENT_OPEN:
             if o.state == WAIT_OPEN:
                 o.state, o.open_ts = OPEN, e.ts
+            else:
+                o.open_ts = e.ts
         elif t == EVENT_CANCEL:
             o.state, o.close_ts = CANCELED, e.ts
         elif t == EVENT_OPEN_FAILED:
