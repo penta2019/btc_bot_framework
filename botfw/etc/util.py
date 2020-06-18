@@ -31,10 +31,10 @@ def hmac_sha256(key, msg):
 def setup_logger(level=logging.INFO):
     log = logging.getLogger()
     log.setLevel(level)
-    fmt = MillisecondFormatter(
-        '[%(asctime)s %(levelname).1s %(name)s] %(message)s')
     handler = logging.StreamHandler()
-    handler.setFormatter(fmt)
+    handler.setFormatter(logging.Formatter(
+        fmt='[%(asctime)s.%(msecs)03d %(levelname).1s %(name)s] %(message)s',
+        datefmt='%H:%M:%S'))
     log.addHandler(handler)
 
 
@@ -63,13 +63,6 @@ def run_forever_nonblocking(cb, log, sleep, exception_sleep=5):
 
 class StopRunForever(BaseException):
     pass
-
-
-class MillisecondFormatter(logging.Formatter):
-    def formatTime(self, record, datefmt=None):
-        ct = datetime.datetime.fromtimestamp(record.created)
-        t = ct.strftime('%H:%M:%S')
-        return f'{t}.{record.msecs:03.0f}'
 
 
 class Timer:
