@@ -21,3 +21,4 @@ from .liquid.exchange import Liquid
 from .etc.util import setup_logger
 from .etc.cmd import Cmd, CmdClient, CmdServer
 from .etc.loader import DynamicThreadClassLoader, Loadable
+from .etc.trade_proxy import TradeProxy
