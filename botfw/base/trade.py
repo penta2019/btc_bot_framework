@@ -1,13 +1,10 @@
 import logging
 import time
 
-import websocket
-
 from ..etc.util import setup_logger
 
 
 def test_trade(t, trace=False, log_level=logging.INFO):
-    websocket.enableTrace(trace)
     setup_logger(log_level)
     try:
         t.add_callback(lambda ts, p, s: print(f'{ts:.3f} {p:.1f} {s:+.3f}'))

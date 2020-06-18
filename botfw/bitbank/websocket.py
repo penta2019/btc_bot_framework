@@ -30,7 +30,7 @@ class BitbankWebsocket(WebsocketBase):
 
     def _subscribe(self, ch):
         msg = f'42["join-room", "{ch}"]'
-        self.ws.send(msg)
+        self.send_raw(msg)
         self.log.info(msg)
 
     def _on_message(self, msg):
@@ -53,4 +53,4 @@ class BitbankWebsocket(WebsocketBase):
 
     def __ping_worker(self):
         if self.is_open:
-            self.ws.send('2')  # ping
+            self.send_raw('2')  # ping

@@ -6,12 +6,20 @@
 import json
 import sys
 
-import websocket
+import asyncio
+import websockets
 
 port, exchange, symbol = sys.argv[1:]
-ws = websocket.WebSocketApp(
-    f'ws://127.0.0.1:{port}',
-    on_open=lambda ws: ws.send(json.dumps(
-        {'exchange': exchange, 'symbol': symbol})),
-    on_message=lambda ws, msg: print(msg))
-ws.run_forever()
+
+
+async def run_app():
+    async with websockets.connect(f'ws://127.0.0.1:{port}') as ws:
+        await ws.send(json.dumps(
+            {'exchange': exchange, 'symbol': symbol}))
+        while True:
+            print(await ws.recv())
+
+try:
+    asyncio.run(run_app())
+except KeyboardInterrupt:
+    pass

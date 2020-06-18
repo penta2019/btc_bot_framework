@@ -1,14 +1,12 @@
 import time
 import logging
 
-import websocket
 from sortedcontainers import SortedDict
 
 from ..etc.util import setup_logger
 
 
 def test_orderbook(ob, trace=False, log_level=logging.INFO):
-    websocket.enableTrace(trace)
     setup_logger(log_level)
     ob.wait_initialized()
     try:
