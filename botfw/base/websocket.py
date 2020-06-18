@@ -41,7 +41,7 @@ class WebsocketBase:
                 WebsocketBase._loop = asyncio.new_event_loop()
                 threading.Thread(
                     target=lambda: WebsocketBase._loop.run_forever(),
-                    daemon=True).start()
+                    daemon=True, name='WebsocketBase_event_loop').start()
 
         asyncio.run_coroutine_threadsafe(self.__worker(), WebsocketBase._loop)
 
