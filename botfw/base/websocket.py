@@ -174,4 +174,4 @@ class WebsocketBase:
             self._ws = None
             if not self.running:
                 break
-            asyncio.sleep(5)
+            await asyncio.sleep(5)
