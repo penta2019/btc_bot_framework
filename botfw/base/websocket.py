@@ -131,7 +131,7 @@ class WebsocketBase:
         pass
 
     def _on_open(self):
-        self.log.info('open websocket')
+        self.log.info(f'open websocket: {self.url}')
         self._next_id = 1
         self._request_table = {}
         with self.__lock:
@@ -155,22 +155,25 @@ class WebsocketBase:
 
     async def __worker(self):
         while True:
-            self._on_init()
-            self.log.debug(f'create websocket: url={self.url}')
+            try:
+                self._on_init()
 
-            async with websockets.connect(self.url) as ws:
-                try:
+                async with websockets.connect(self.url) as ws:
                     self._ws = ws
                     self._on_open()
                     while True:
-                        msg = await ws.recv()
-                        self._on_message(msg)
-                except websockets.ConnectionClosed:
-                    pass
-                except Exception as e:
-                    self._on_error(e)
+                        try:
+                            msg = await ws.recv()
+                            self._on_message(msg)
+                        except websockets.ConnectionClosed:
+                            break
+                        except Exception as e:
+                            self._on_error(e)
 
-            self._on_close()
+                self._on_close()
+            except Exception:
+                self.log.error(traceback.format_exc())
+
             self._ws = None
             if not self.running:
                 break
