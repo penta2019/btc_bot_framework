@@ -109,7 +109,8 @@ class WebsocketBase:
         else:
             self.log.error('authentication failed')
             self.is_auth = False
-            self._ws.close()
+            asyncio.run_coroutine_threadsafe(
+                self._ws.close(), WebsocketBase._loop)
 
     def _run_callbacks(self, cbs, *args):
         for cb in cbs:
