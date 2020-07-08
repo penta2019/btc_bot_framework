@@ -208,7 +208,7 @@ class OrderManagerBase:
             # or order is not created by this class
             self.__event_queue.append(e)
 
-    def _generate_order_object(self, e):
+    def _generate_order_object(self, e) -> Order:
         assert False
         return self
 

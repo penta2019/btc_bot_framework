@@ -52,13 +52,14 @@ class CmdServer:
         return 'usage: Command args...\n\n' + '\n\n'.join(details) + '\n'
 
     def __worker(self):
-        try:
-            msg, addr = self.__sock.recvfrom(2 ** 16)
-            msg = msg.decode().rstrip()
-            args = msg.split()
-            if not args:
-                return
+        msg, addr = self.__sock.recvfrom(2 ** 16)
+        msg = msg.decode().rstrip()
+        args = msg.split()
+        if not args:
+            return
 
+        log, response = True, True
+        try:
             cmd = args[0]
             cmd_info = self.__commands.get(cmd)
             if cmd_info:
@@ -66,9 +67,6 @@ class CmdServer:
                 result = func(*args[1:])
             else:
                 result = f'command "{cmd}" not found'
-                log, response = True, True
-        except socket.timeout:
-            return
         except Exception:
             result = traceback.format_exc()
 

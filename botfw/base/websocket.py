@@ -8,10 +8,17 @@ import asyncio
 import websockets
 
 
+def new_event_loop(name):
+    loop = asyncio.new_event_loop()
+    threading.Thread(
+        target=lambda: loop.run_forever(),
+        daemon=True, name=name).start()
+    return loop
+
+
 class WebsocketBase:
     ENDPOINT = None
-    _loop = None
-    _lock = threading.Lock()
+    _loop = new_event_loop('WebsocketBase_asyncio')
 
     def __init__(self, key=None, secret=None):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -35,13 +42,6 @@ class WebsocketBase:
 
         if self.key and self.secret:
             self.add_after_open_callback(self._authenticate)
-
-        with WebsocketBase._lock:
-            if not WebsocketBase._loop:
-                WebsocketBase._loop = asyncio.new_event_loop()
-                threading.Thread(
-                    target=lambda: WebsocketBase._loop.run_forever(),
-                    daemon=True, name='WebsocketBase_event_loop').start()
 
         asyncio.run_coroutine_threadsafe(self.__worker(), WebsocketBase._loop)
 

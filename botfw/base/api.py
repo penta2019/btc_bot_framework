@@ -1,6 +1,8 @@
 import logging
 import threading
 
+import ccxt
+
 from ..etc.util import run_forever_nonblocking
 
 
@@ -9,14 +11,14 @@ class ApiBase:
     API_PER_SECOND = 1
     _instance = None
     _lock = threading.Lock()
-    _ccxt_class = object
+    _ccxt_class = ccxt.Exchange
 
     @classmethod
     def ccxt_instance(cls):
         with cls._lock:
             if not cls._instance:
                 cls._instance = cls._ccxt_class()
-                cls._instance.load_markets()
+                getattr(cls._instance, 'load_markets')()
         return cls._instance
 
     def __init__(self):
@@ -24,6 +26,10 @@ class ApiBase:
         self.capacity = self.MAX_API_CAPACITY
         self.count = {}
         run_forever_nonblocking(self.__worker, self.log, 1)
+
+        # silence linter
+        self.sign = getattr(self, 'sign')
+        self.fetch = getattr(self, 'fetch')
 
     def fetch_position(self, symbol):
         assert False
@@ -55,7 +61,3 @@ class ApiBase:
     def __worker(self):
         if self.capacity < self.MAX_API_CAPACITY:
             self.capacity += self.API_PER_SECOND
-
-    if False:  # ccxt.base.Exchange
-        def sign(self, *args): return self
-        def fetch(self, *args): return self

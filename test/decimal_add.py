@@ -9,7 +9,7 @@ class TestPreciseAdd(unittest.TestCase):
     '''test class of botfw.etc.util.decimal_add()'''
 
     def test_integer_add(self):
-        min_max = (-1e6, 1e6)
+        min_max = (-1000_000, 1000_000)
         for _ in range(10000):
             x0, x1 = randrange(*min_max), randrange(*min_max)
             ans = x0 + x1
@@ -17,7 +17,7 @@ class TestPreciseAdd(unittest.TestCase):
             self.assertEqual(ans, res)
 
     def test_float_add(self):
-        min_max = (-1e12, 1e12)
+        min_max = (-1000_000_000_000, 1000_000_000_000)
         mul = int(1e8)
         for _ in range(10000):
             x0, x1 = randrange(*min_max), randrange(*min_max)

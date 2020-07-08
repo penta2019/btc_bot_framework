@@ -2,9 +2,7 @@ import logging
 
 from .order_simulator import OrderManagerSimulator
 
-
-class none:
-    OrderGroup = None
+none = getattr(object, '__class__')  # silence linter
 
 
 class ExchangeBase:  # Abstract Factory
@@ -35,7 +33,8 @@ class ExchangeBase:  # Abstract Factory
                 self.api, self.websocket)
             self.order_group_manager = self.OrderGroupManager(
                 self.order_manager)
-            self.order_manager.prepare_simulator = lambda s: none()
+            self.order_manager.prepare_simulator = \
+                lambda s: type('Dummy', (), {})
         else:
             self.log.info('simulation mode')
             ccxt_config['apiKey'] = None
