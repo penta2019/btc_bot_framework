@@ -457,17 +457,20 @@ class OrderGroupBase:
         self.event_cb = []
 
     def create_order(
-            self, type_, side, amount, price=None, params={}, sync=False):
+            self, type_: str, side: str, amount: float, price: float = None,
+            params: dict = {}, sync: bool = False) -> Order:
         o = self.manager.order_manager.create_order(
             self.symbol, type_, side, amount, price, params,
             self.__handle_event, self.order_log, sync)
         o.group_name = self.name
         return o
 
-    def cancel_order(self, o, sync=False):
+    def cancel_order(self, o: Order, sync: bool = False) -> None:
         self.manager.order_manager.cancel_order(o, self.order_log, sync)
 
-    def edit_order(self, o, amount=None, price=None, sync=False):
+    def edit_order(
+            self, o: Order, amount: float = None, price: float = None,
+            sync: bool = False) -> Order:
         o = self.manager.order_manager.edit_order(
             o, amount, price, self.order_log, sync)
         return o
