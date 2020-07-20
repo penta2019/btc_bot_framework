@@ -17,7 +17,7 @@ def new_event_loop(name):
 
 
 class WebsocketBase:
-    ENDPOINT = None
+    ENDPOINT = ''
     _loop = new_event_loop('WebsocketBase_asyncio')
 
     def __init__(self, key=None, secret=None):

@@ -175,7 +175,7 @@ class gmocoin(ccxt.Exchange):
         for balance in res['data']:
             currency_id = balance['symbol']
             code = currency_id
-            account = self.account()
+            account = getattr(self, 'account')()
             account['total'] = float(balance['amount'])
             account['free'] = float(balance['available'])
             result[code] = account
@@ -346,7 +346,7 @@ class gmocoin(ccxt.Exchange):
     def fetch_open_orders(self, symbol=None, since=None, limit=100, params={}):
         if symbol is None:
             raise ccxt.ArgumentsRequired(
-                self.id + ' fetch_open_orders() requires a `symbol` argument')
+                f'{self.id} fetch_open_orders() requires a `symbol` argument')
         self.load_markets()
         market = self.market(symbol)
         request = {
@@ -381,7 +381,7 @@ class gmocoin(ccxt.Exchange):
     def fetch_my_trades(self, symbol=None, since=None, limit=None, params={}):
         if symbol is None:
             raise ccxt.ArgumentsRequired(
-                self.id + ' fetchMyTrades requires a `symbol` argument')
+                f'{self.id} fetchMyTrades requires a `symbol` argument')
         self.load_markets()
         market = self.market(symbol)
         request = {
