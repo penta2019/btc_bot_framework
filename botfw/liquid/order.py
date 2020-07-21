@@ -13,8 +13,8 @@ class LiquidOrderManager(od.OrderManagerBase):
         for symbol in self.SYMBOLS:
             s = symbol.replace('/', '').lower()
             self.ws.subscribe(f'user_executions_cash_{s}', self.__on_events)
-        self.ws.subscribe(f'user_account_jpy_orders', self.__on_events)
-        self.ws.subscribe(f'user_account_jpy_trades', self.__on_events)
+        self.ws.subscribe('user_account_jpy_orders', self.__on_events)
+        self.ws.subscribe('user_account_jpy_trades', self.__on_events)
 
     def _generate_order_object(self, e):
         info = e.info

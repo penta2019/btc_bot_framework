@@ -81,8 +81,8 @@ class SymbolSimulator:
         if o.state in [od.CLOSED, od.CANCELED]:
             raise Exception('order is already closed or canceled')
 
-        l = self.buy if o.side == od.BUY else self.sell
-        l.remove(o)
+        ol = self.buy if o.side == od.BUY else self.sell
+        ol.remove(o)
         o.amount = amount
         o.price = price
         self.pending.append(o)

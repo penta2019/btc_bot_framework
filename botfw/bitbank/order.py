@@ -1,5 +1,5 @@
 from ..base import order as od
-from .api import BitbankApi
+# from .api import BitbankApi
 
 
 class BitbankOrderManager(od.OrderManagerBase):

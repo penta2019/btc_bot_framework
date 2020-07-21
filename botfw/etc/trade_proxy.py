@@ -25,7 +25,7 @@ class TradeProxy:
             while True:
                 msg = await ws.recv()
                 self.on_message_received(ws, msg)
-        except websockets.ConnectionClosedOK as e:
+        except websockets.ConnectionClosedOK:
             pass
         except Exception as e:
             self.log.error(e)
