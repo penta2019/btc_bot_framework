@@ -37,7 +37,7 @@ class BitmexOrderManager(od.OrderManagerBase):
                 oe.type = od.EVENT_OPEN
             elif t == 'Filled':
                 oe.type = od.EVENT_CLOSE
-            elif t == 'Canceled':
+            elif t in ['Canceled', 'Rejected']:
                 oe.type = od.EVENT_CANCEL
 
             self._handle_order_event(oe)
