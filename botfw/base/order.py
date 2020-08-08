@@ -97,7 +97,7 @@ class OrderManagerBase:
         self.__event_queue = collections.deque()  # [OrderEvent]
         self.__check_timer = Timer(60)  # timer for check_open_orders
         self.__last_check_tss = {}  # {symbol: last_check_open_orders_ts}
-        self.__executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+        self.__executor = concurrent.futures.ThreadPoolExecutor()
 
         run_forever_nonblocking(self.__worker, self.log, 1)
 
@@ -169,28 +169,32 @@ class OrderManagerBase:
 
     def edit_order(self, o, amount=None, price=None, log=None, sync=False):
         o.editing = True
+        amount = amount or o.amount
+        price = price or o.price
         if sync:
+            success = False
             try:
-                res = self.api.edit_order(
-                    o.id, o.symbol, o.type, o.side,
-                    amount or o.amount, price or o.price)
-                o.price = res['price']
-                o.amount = res['amount']
+                self.api.edit_order(
+                    o.id, o.symbol, o.type, o.side, amount, price)
+                success = True
             finally:
-                o.editing = False
-                if o.filled >= o.amount:
-                    o.state, o.close_ts = CLOSED, time.time()
                 if log:
+                    status = "ok" if success else "error"
                     log.info(
-                        f'edit order: {o.symbol} {o.type} {o.side} '
-                        f'{o.amount} {o.price} {o.params} => {o.id}')
+                        f'edit order: {o.id} ('
+                        f'amount: {o.amount} -> {amount}, '
+                        f'price: {o.price} -> {price})'
+                        f' => {status}')
+                if success:
+                    o.amount = amount
+                    o.price = price
+                o.editing = False
         else:
             f = self.__executor.submit(
                 self.api.edit_order,
-                o.id, o.symbol, o.type, o.side,
-                amount or o.amount, price or o.price)
+                o.id, o.symbol, o.type, o.side, amount, price)
             f.add_done_callback(
-                lambda f: self.__handle_edit_order(o, log, f))
+                lambda f: self.__handle_edit_order(o, amount, price, log, f))
         return o
 
     def cancel_external_orders(self, symbol):
@@ -240,7 +244,8 @@ class OrderManagerBase:
                 o.state = OPEN
             self.log.warning(f'failed to cancel order: {e.id}')
         elif t == EVENT_CLOSE:
-            o.state, o.close_ts = CLOSED, e.ts
+            pass
+            # o.state, o.close_ts = CLOSED, e.ts
         elif t == EVENT_ERROR:
             self.log.error(e.message)
         else:
@@ -371,21 +376,25 @@ class OrderManagerBase:
             if log:
                 log.info(f'cancel order: {o.id}')
 
-    def __handle_edit_order(self, o, log, f):
+    def __handle_edit_order(self, o, amount, price,  log, f):
+        success = False
         try:
-            res = f.result()
-            o.price = res['price']
-            o.amount = res['amount']
+            f.result()
+            success = True
         except Exception as e:
             (log or self.log).error(f'{type(e).__name__}: {e}')
         finally:
-            o.editing = False
-            if o.filled >= o.amount:
-                o.state, o.close_ts = CLOSED, time.time()
             if log:
+                status = "ok" if success else "error"
                 log.info(
-                    f'edit order: {o.symbol} {o.type} {o.side} '
-                    f'{o.amount} {o.price} {o.params} => {o.id}')
+                    f'edit order: {o.id} ('
+                    f'amount: {o.amount} -> {amount}, '
+                    f'price: {o.price} -> {price})'
+                    f' => {status}')
+            if success:
+                o.amount = amount
+                o.price = price
+            o.editing = False
 
     def __worker(self):
         self.__process_queued_order_event()
