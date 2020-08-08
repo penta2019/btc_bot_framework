@@ -167,7 +167,8 @@ class OrderManagerBase:
             o.state = CANCELED
             elog.error(f'cancel failed: Order {o.id} is not in order list')
 
-    def edit_order(self, o, amount=None, price=None, log=None, sync=False):
+    def edit_order(
+            self, o, amount=None, price=None, params={}, log=None, sync=False):
         o.editing = True
         amount = amount or o.amount
         price = price or o.price
@@ -175,16 +176,15 @@ class OrderManagerBase:
             success = False
             try:
                 self.api.edit_order(
-                    o.id, o.symbol, o.type, o.side, amount, price)
+                    o.id, o.symbol, o.type, o.side, amount, price, params)
                 success = True
             finally:
                 if log:
                     status = "ok" if success else "error"
                     log.info(
-                        f'edit order: {o.id} ('
-                        f'amount: {o.amount} -> {amount}, '
-                        f'price: {o.price} -> {price})'
-                        f' => {status}')
+                        f'edit order: {o.id} '
+                        f'{amount}({o.amount}) {price}({o.price}) {params} '
+                        f'=> {status}')
                 if success:
                     o.amount = amount
                     o.price = price
@@ -192,9 +192,10 @@ class OrderManagerBase:
         else:
             f = self.__executor.submit(
                 self.api.edit_order,
-                o.id, o.symbol, o.type, o.side, amount, price)
+                o.id, o.symbol, o.type, o.side, amount, price, params)
             f.add_done_callback(
-                lambda f: self.__handle_edit_order(o, amount, price, log, f))
+                lambda f: self.__handle_edit_order(
+                    o, amount, price, params, log, f))
         return o
 
     def cancel_external_orders(self, symbol):
@@ -376,7 +377,7 @@ class OrderManagerBase:
             if log:
                 log.info(f'cancel order: {o.id}')
 
-    def __handle_edit_order(self, o, amount, price,  log, f):
+    def __handle_edit_order(self, o, amount, price, params, log, f):
         success = False
         try:
             f.result()
@@ -387,10 +388,9 @@ class OrderManagerBase:
             if log:
                 status = "ok" if success else "error"
                 log.info(
-                    f'edit order: {o.id} ('
-                    f'amount: {o.amount} -> {amount}, '
-                    f'price: {o.price} -> {price})'
-                    f' => {status}')
+                    f'edit order: {o.id} '
+                    f'{amount}({o.amount}) {price}({o.price}) {params} '
+                    f'=> {status}')
             if success:
                 o.amount = amount
                 o.price = price
@@ -479,9 +479,9 @@ class OrderGroupBase:
 
     def edit_order(
             self, o: Order, amount: float = None, price: float = None,
-            sync: bool = False) -> Order:
+            params: dict = {}, sync: bool = False) -> Order:
         o = self.manager.order_manager.edit_order(
-            o, amount, price, self.order_log, sync)
+            o, amount, price, params, self.order_log, sync)
         return o
 
     def get_orders(self):
