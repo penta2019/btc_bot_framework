@@ -35,8 +35,9 @@ class ApiBase:
         assert False
         return 0
 
-    def request(self, path, api='public', method='GET', params={},
-                headers=None, body=None):
+    def fetch2(
+            self, path, api='public', method='GET', params={},
+            headers=None, body=None):
         try:
             request = self.sign(
                 path, api, method, params, headers, body)
