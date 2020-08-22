@@ -56,9 +56,9 @@ class TradeProxy:
         addr = ws.remote_address
         self.log.info(f'{addr}: "{msg}"')
 
-        data = json.loads(msg)
-        exchange = data['exchange']
-        symbol = data['symbol']
+        msg = json.loads(msg)
+        exchange = msg['exchange']
+        symbol = msg['symbol']
         key = (exchange, symbol)
 
         if self.clients[addr]:
