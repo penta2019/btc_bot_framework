@@ -486,7 +486,7 @@ class OrderGroupBase:
 
     def get_orders(self):
         orders = {}
-        for o in self.manager.order_manager.orders.values():
+        for o in list(self.manager.order_manager.orders.values()):
             if o.get('group_name') == self.name:
                 orders[o.id] = o
         return orders
