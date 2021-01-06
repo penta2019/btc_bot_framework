@@ -68,7 +68,7 @@ class LiquidOrderGroup(od.OrderGroupBase):
 
     def __init__(self, manager, symbol, name):
         super().__init__(manager, symbol, name)
-        self.leverage = 4
+        self.leverage = 2
 
     def create_order(
             self, type_, side, amount, price=None, params={}, sync=False):
@@ -84,7 +84,7 @@ class LiquidOrderGroup(od.OrderGroupBase):
 class LiquidOrderGroupManager(od.OrderGroupManagerBase):
     OrderGroup = LiquidOrderGroup
 
-    def create_order_group(self, symbol, name, leverage=4):
+    def create_order_group(self, symbol, name, leverage=2):
         if name in self.order_groups:
             self.log.error('Failed to create order group. '
                            f'Order group "{name}" already exists.')
