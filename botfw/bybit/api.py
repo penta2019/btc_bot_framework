@@ -12,7 +12,7 @@ class BybitApi(ApiBase, ccxt.bybit):
 
         # silence linter
         self.private_get_position_list = getattr(
-            self, 'private_get_position_list')
+            self, 'v2_private_get_position_list')
 
     def fetch_position(self, symbol):
         market_id = self.market_id(symbol)
