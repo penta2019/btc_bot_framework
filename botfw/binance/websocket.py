@@ -50,10 +50,6 @@ class BinanceWebsocket(WebsocketBase):
                 self.log.warning(f'Unknown message {msg}')
 
 
-class BinanceFutureWebsocket(BinanceWebsocket):
-    ENDPOINT = 'wss://fstream.binance.com/ws'
-
-
 class BinanceWebsocketPrivate(WebsocketBase):
     ENDPOINT = 'wss://stream.binance.com:9443/ws'
 
@@ -82,6 +78,11 @@ class BinanceWebsocketPrivate(WebsocketBase):
     def __worker(self):
         if self.__key:
             self.__api.websocket_key('PUT', self.__key)  # keep alive
+
+
+# Future
+class BinanceFutureWebsocket(BinanceWebsocket):
+    ENDPOINT = 'wss://fstream.binance.com/ws'
 
 
 class BinanceFutureWebsocketPrivate(BinanceWebsocketPrivate):
