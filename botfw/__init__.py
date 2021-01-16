@@ -14,7 +14,7 @@ from .bitbank.exchange import Bitbank                       # noqa: F401
 from .bitflyer.exchange import Bitflyer                     # noqa: F401
 from .bitmex.exchange import Bitmex                         # noqa: F401
 from .binance.exchange import Binance, BinanceFuture        # noqa: F401
-from .bybit.exchange import Bybit                           # noqa: F401
+from .bybit.exchange import Bybit, BybitUsdt                # noqa: F401
 from .gmocoin.exchange import Gmocoin                       # noqa: F401
 from .liquid.exchange import Liquid                         # noqa: F401
 

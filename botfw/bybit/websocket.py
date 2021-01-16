@@ -50,3 +50,7 @@ class BybitWebsocket(WebsocketBase):
                     self.log.error(f'{req} => {status}, {error}')
             else:
                 self.log.warning(f'Unknown message: {msg}')
+
+
+class BybitUsdtWebsocket(BybitWebsocket):
+    ENDPOINT = 'wss://stream.bybit.com/realtime_public'
