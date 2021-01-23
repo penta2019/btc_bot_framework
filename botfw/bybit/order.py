@@ -57,7 +57,7 @@ class BybitOrderManager(od.OrderManagerBase):
 
 
 class BybitPositionGroup(od.PositionGroupBase):
-    SIZE_IN_QUOTE = True
+    INVERSE = True
 
 
 class BybitOrderGroup(od.OrderGroupBase):

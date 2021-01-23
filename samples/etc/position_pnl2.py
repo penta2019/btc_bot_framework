@@ -5,7 +5,7 @@ from botfw.base.order import PositionGroupBase
 
 
 class PositionGroup(PositionGroupBase):
-    SIZE_IN_QUOTE = True
+    INVERSE = True
 
 
 pos = PositionGroup()  # price(USD) size(USD)

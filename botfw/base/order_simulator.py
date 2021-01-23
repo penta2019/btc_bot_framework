@@ -234,7 +234,7 @@ class OrderManagerSimulator:
         if self.quote_prec is None:
             return price * amount * fee_rate, 0, None
         else:
-            return amount * fee_rate, 0, None  # bitmex(SIZE_IN_QUOTE=True)
+            return amount * fee_rate, 0, None  # bitmex(INVERSE=True)
 
     def prepare_simulator(self, symbol):
         if symbol not in self.simulator:

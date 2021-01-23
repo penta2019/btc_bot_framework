@@ -5,7 +5,7 @@ from botfw.base.order import PositionGroupBase
 
 
 class PositionGroup(PositionGroupBase):
-    SIZE_IN_QUOTE = False  # デフォルトでFalseなので書かなくても良い
+    INVERSE = False  # デフォルトでFalseなので書かなくても良い
 
 
 pos = PositionGroup()  # price(JPY) size(BTC)

@@ -403,7 +403,7 @@ class OrderManagerBase:
 
 
 class PositionGroupBase(dict):
-    SIZE_IN_QUOTE = False
+    INVERSE = False
 
     def __init__(self):
         super().__init__()
@@ -423,7 +423,7 @@ class PositionGroupBase(dict):
         if pos == 0:
             avg = 1
         elif pos0 * pos1 >= 0:
-            if self.SIZE_IN_QUOTE:
+            if self.INVERSE:
                 avg = (pos0 + pos1) / (pos0 / avg0 + pos1 / avg1)
             else:
                 avg = (avg0 * pos0 + avg1 * pos1) / pos
@@ -432,7 +432,7 @@ class PositionGroupBase(dict):
         else:  # pos * pos1 > 0
             avg = avg1
 
-        if self.SIZE_IN_QUOTE:
+        if self.INVERSE:
             pnl = ((pos0 / avg0) + (pos1 / avg1) - (pos / avg)) * price
         else:
             pnl = avg * pos - avg0 * pos0 - avg1 * pos1
@@ -445,7 +445,7 @@ class PositionGroupBase(dict):
         self.last_update_ts = time.time()
 
     def update_unrealized_pnl(self, price):
-        if self.SIZE_IN_QUOTE:
+        if self.INVERSE:
             pnl = (1 / self.average_price - 1 / price) * self.position * price
         else:
             pnl = (price - self.average_price) * self.position

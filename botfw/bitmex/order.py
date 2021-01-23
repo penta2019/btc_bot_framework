@@ -44,7 +44,7 @@ class BitmexOrderManager(od.OrderManagerBase):
 
 
 class BitmexPositionGroup(od.PositionGroupBase):
-    SIZE_IN_QUOTE = True
+    INVERSE = True
 
 
 class BitmexOrderGroup(od.OrderGroupBase):
