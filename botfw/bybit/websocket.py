@@ -7,6 +7,7 @@ from ..etc.util import hmac_sha256
 
 class BybitWebsocket(WebsocketBase):
     ENDPOINT = 'wss://stream.bybit.com/realtime'
+    ENDPOINT_PRIVATE = 'wss://stream.bybit.com/realtime'
 
     def command(self, op, args=None, cb=None):
         msg = {'op': op}
@@ -21,7 +22,7 @@ class BybitWebsocket(WebsocketBase):
             expires = int(time.time() * 1000 + 1000)
             sign = hmac_sha256(self.secret, f'GET/realtime{expires}')
             param = f'api_key={self.key}&expires={expires}&signature={sign}'
-            self.url = f'{self.ENDPOINT}?{param}'
+            self.url = f'{self.ENDPOINT_PRIVATE}?{param}'
 
     def _on_open(self):
         super()._on_open()
@@ -54,3 +55,4 @@ class BybitWebsocket(WebsocketBase):
 
 class BybitUsdtWebsocket(BybitWebsocket):
     ENDPOINT = 'wss://stream.bybit.com/realtime_public'
+    ENDPOINT_PRIVATE = 'wss://stream.bybit.com/realtime_private'

@@ -66,3 +66,20 @@ class BybitOrderGroup(od.OrderGroupBase):
 
 class BybitOrderGroupManager(od.OrderGroupManagerBase):
     OrderGroup = BybitOrderGroup
+
+
+# Future
+class BybitUsdtOrderManager(BybitOrderManager):
+    pass
+
+
+class BybitUsdtPositionGroup(BybitPositionGroup):
+    INVERSE = False
+
+
+class BybitUsdtOrderGroup(BybitOrderGroup):
+    PositionGroup = BybitUsdtPositionGroup
+
+
+class BybitUsdtOrderGroupManager(BybitOrderGroupManager):
+    OrderGroup = BybitUsdtOrderGroup
