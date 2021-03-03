@@ -100,6 +100,7 @@ class gmocoin(ccxt.Exchange):
                         'order',
                         'changeOrder',
                         'cancelOrder',
+                        'cancelBulkOrder',
                         'closeOrder',
                         'closeBulkOrder',
                         'changeLosscutPrice',
