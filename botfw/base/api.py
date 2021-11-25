@@ -37,7 +37,7 @@ class ApiBase:
 
     def fetch2(
             self, path, api='public', method='GET', params={},
-            headers=None, body=None):
+            headers=None, body=None, config={}, context={}):
         try:
             request = self.sign(
                 path, api, method, params, headers, body)
